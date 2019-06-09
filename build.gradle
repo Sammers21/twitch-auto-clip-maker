@@ -8,7 +8,7 @@
 
 plugins {
     // Apply the java plugin to add support for Java
-    id 'scala'
+    id 'java'
 
     // Apply the application plugin to add support for building an application
     id 'application'
@@ -20,9 +20,6 @@ repositories {
 }
 
 dependencies {
-
-    // https://mvnrepository.com/artifact/org.scala-lang/scala-library
-    compile group: 'org.scala-lang', name: 'scala-library', version: '2.12.8'
 
     compile group: 'com.github.twitch4j', name: 'twitch4j', version: '1.0.0-alpha.13'
 
