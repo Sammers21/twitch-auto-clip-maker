@@ -12,39 +12,45 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 
 public class Main {
 
     private static Logger log = LoggerFactory.getLogger(Main.class);
 
-    private static final String CARBON_HOST = "174.138.4.227";
-    private static final Integer CARBON_PORT = 2003;
+    private static String CARBON_HOST;
+    private static Integer CARBON_PORT;
 
     public static void main(String[] args) {
         String token = args[0];
-        String channel = args[1];
+        CARBON_HOST = args[1];
+        CARBON_PORT = Integer.parseInt(args[2]);
 
+        if (args.length < 4) {
+            log.error("Should be at least 4 args");
+            System.exit(-1);
+        }
 
+        List<String> channelToWatch = Arrays.stream(args).skip(3).collect(Collectors.toList());
         MetricRegistry metricRegistry = new MetricRegistry();
         initReporters(metricRegistry);
-
         var credential = new OAuth2Credential("twitch", token);
-
         var twitchClient = TwitchClientBuilder.builder()
                 .withEnableChat(true)
                 .withChatAccount(credential)
                 .build();
-
-        Meter messagesPerSec = metricRegistry.meter(String.format("channel.%s.messages", channel));
-
         var chat = twitchClient.getChat();
-        chat.joinChannel(channel);
+        channelToWatch.forEach(chat::joinChannel);
         var value = chat.getEventManager().onEvent(ChannelMessageEvent.class);
         value.subscribe(ok -> {
+            String channelName = ok.getChannel().getName();
+            Meter messagesPerSec = metricRegistry.meter(String.format("channel.%s.messages", channelName));
             messagesPerSec.mark();
-            log.info("{}: {}", ok.getUser().getName(), ok.getMessage());
+            log.info("[{}] {}: {}", channelName, ok.getUser().getName(), ok.getMessage());
         });
     }
 
