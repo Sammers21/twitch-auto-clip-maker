@@ -15,7 +15,7 @@ plugins {
 }
 
 
-mainClassName = 'io,github.sammers21.Main'
+mainClassName = 'io.github.sammers21.twitch.Main'
 
 repositories {
     jcenter()
