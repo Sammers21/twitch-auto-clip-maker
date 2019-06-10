@@ -8,6 +8,7 @@ import com.codahale.metrics.graphite.GraphiteReporter;
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
 import com.github.twitch4j.TwitchClientBuilder;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
+import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,11 +26,11 @@ import java.util.stream.Collectors;
 public class Main {
 
     private static Logger log = LoggerFactory.getLogger(Main.class);
-
     private static String CARBON_HOST;
     private static Integer CARBON_PORT;
 
     public static void main(String[] args) throws SocketException, UnknownHostException {
+        Vertx vertx = Vertx.vertx();
         String token = args[0];
         CARBON_HOST = args[1];
         CARBON_PORT = Integer.parseInt(args[2]);
@@ -49,6 +50,7 @@ public class Main {
         var credential = new OAuth2Credential("twitch", token);
         var twitchClient = TwitchClientBuilder.builder()
                 .withEnableChat(true)
+                .withEnableTMI(true)
                 .withChatAccount(credential)
                 .build();
         var chat = twitchClient.getChat();
@@ -61,6 +63,9 @@ public class Main {
             log.info("[{}] {}: {}", channelName, ok.getUser().getName(), ok.getMessage());
         });
 
+        channelToWatch.forEach(chan -> {
+            metricRegistry.gauge(String.format("channel.%s.viewers", chan), () -> () -> twitchClient.getMessagingInterface().getChatters(chan).execute().getViewerCount());
+        });
     }
 
     private static void initReporters(MetricRegistry metricRegistry) throws UnknownHostException, SocketException {
