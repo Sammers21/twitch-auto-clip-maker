@@ -27,6 +27,7 @@ dependencies {
     // twitch api 
     compile group: 'com.github.twitch4j', name: 'twitch4j', version: '1.0.0-alpha.13'
     
+    //vertx
     compile group: 'io.vertx', name: 'vertx-core', version: '3.7.1'
 
     // metrics 

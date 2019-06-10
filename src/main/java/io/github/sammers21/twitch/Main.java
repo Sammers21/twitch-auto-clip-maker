@@ -33,21 +33,25 @@ public class Main {
     private static Logger log = LoggerFactory.getLogger(Main.class);
     private static String CARBON_HOST;
     private static Integer CARBON_PORT;
+    private static Integer STORE_MESSAGES_LAST_MILLIS;
     private static final Map<String, AtomicInteger> viewersByChan = new ConcurrentHashMap<>();
+    private static final Map<String, LastMessagesStorage> storageByChan = new ConcurrentHashMap<>();
 
     public static void main(String[] args) throws SocketException, UnknownHostException {
         String token = args[0];
         CARBON_HOST = args[1];
         CARBON_PORT = Integer.parseInt(args[2]);
+        STORE_MESSAGES_LAST_MILLIS = Integer.parseInt(args[3]);
 
-        if (args.length < 4) {
+        if (args.length < 5) {
             log.error("Should be at least 4 args");
             System.exit(-1);
         }
-        List<String> channelToWatch = Arrays.stream(args).skip(3).collect(Collectors.toList());
+        List<String> channelToWatch = Arrays.stream(args).skip(4).collect(Collectors.toList());
         Vertx vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(channelToWatch.size()));
         channelToWatch.forEach(chan -> {
             viewersByChan.put(chan, new AtomicInteger(0));
+            storageByChan.put(chan, new LastMessagesStorage(STORE_MESSAGES_LAST_MILLIS));
         });
         log.info("Token={}", token);
         log.info("CARBON_HOST={}", CARBON_HOST);
@@ -65,12 +69,13 @@ public class Main {
         var chat = twitchClient.getChat();
         channelToWatch.forEach(chat::joinChannel);
         var value = chat.getEventManager().onEvent(ChannelMessageEvent.class);
-        value.subscribe(ok -> {
+        value.subscribe((ChannelMessageEvent ok) -> {
             String channelName = ok.getChannel().getName();
             Meter messagesPerSec = metricRegistry.meter(String.format("channel.%s.messages", channelName));
-            Meter sym = metricRegistry.meter(String.format("channel.%s.messages", channelName));
             messagesPerSec.mark();
             log.info("[{}] {}: {}", channelName, ok.getUser().getName(), ok.getMessage());
+            LastMessagesStorage lastMessagesStorage = storageByChan.get(channelName);
+            lastMessagesStorage.push(ok);
         });
 
         vertx.setPeriodic(2_000, periodic -> {
@@ -87,6 +92,7 @@ public class Main {
 
         channelToWatch.forEach(chan -> {
             metricRegistry.gauge(String.format("channel.%s.viewers", chan), () -> () -> viewersByChan.get(chan).get());
+            metricRegistry.gauge(String.format("channel.%s.lenIndex", chan), () -> () -> storageByChan.get(chan).lenIndex());
         });
     }
 
