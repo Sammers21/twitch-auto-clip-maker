@@ -3,8 +3,11 @@ package io.github.sammers21.twitch;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class LastMessagesStorage {
@@ -34,13 +37,31 @@ public class LastMessagesStorage {
     }
 
     public synchronized Double lenIndex() {
+        return customIndex(String::length);
+    }
+
+    private synchronized Double customIndex(Function<String, Integer> countProcedure) {
         List<String> strings = lastMessages();
         int messageCount = strings.size();
         if (messageCount != 0) {
-            Integer symbCount = strings.stream().map(String::length).reduce(Integer::sum).get();
-            return Double.valueOf(symbCount) / (double) messageCount;
+            Integer reducedMessages = strings.stream().map(countProcedure).reduce(Integer::sum).get();
+            return Double.valueOf(reducedMessages) / (double) messageCount;
         } else {
             return 1d;
         }
+    }
+
+    public synchronized Double uniqWordsIndex() {
+        return customIndex(LastMessagesStorage::uniqWords);
+    }
+
+    private static int uniqWords(String input) {
+        if (input == null || input.isEmpty()) {
+            return 0;
+        }
+
+        String[] words = input.split("\\s+");
+        Set<String> wordSet = Arrays.stream(words).collect(Collectors.toSet());
+        return wordSet.size();
     }
 }

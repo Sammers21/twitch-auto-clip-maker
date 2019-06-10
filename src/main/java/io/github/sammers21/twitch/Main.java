@@ -93,6 +93,7 @@ public class Main {
         channelToWatch.forEach(chan -> {
             metricRegistry.gauge(String.format("channel.%s.viewers", chan), () -> () -> viewersByChan.get(chan).get());
             metricRegistry.gauge(String.format("channel.%s.lenIndex", chan), () -> () -> storageByChan.get(chan).lenIndex());
+            metricRegistry.gauge(String.format("channel.%s.uniqWordsIndex", chan), () -> () -> storageByChan.get(chan).uniqWordsIndex());
         });
     }
 
