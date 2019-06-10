@@ -4,7 +4,17 @@
       <pattern>%date{HH:mm:ss.SSS} [%thread] %-5level %logger{15} - %msg %n</pattern>
     </encoder>
   </appender>
+  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+    <file>twitch-clip-maker.log.txt</file>
+    <append>true</append>
+    <!-- set immediateFlush to false for much higher logging throughput -->
+    <immediateFlush>false</immediateFlush>
+    <encoder>
+      <pattern>%date{HH:mm:ss.SSS} [%thread] %-5level %logger{15} - %msg %n</pattern>
+    </encoder>
+  </appender>
   <root level="INFO">
     <appender-ref ref="STDOUT"/>
+    <appender-ref ref="FILE"/>
   </root>
 </configuration>

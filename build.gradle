@@ -24,18 +24,15 @@ repositories {
 
 dependencies {
 
+    // twitch api 
     compile group: 'com.github.twitch4j', name: 'twitch4j', version: '1.0.0-alpha.13'
-
-    // https://mvnrepository.com/artifact/org.slf4j/slf4j-simple
-    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.25'
-
+    
+    // metrics 
     compile group: 'io.dropwizard.metrics', name: 'metrics-core', version: '4.0.0'
     compile group: 'io.dropwizard.metrics', name: 'metrics-graphite', version: '4.0.0'
 
-//    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.0.9'
-
-    // Use JUnit test framework
-    testImplementation 'junit:junit:4.12'
+    // logging
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.0.9'
 }
 
 
