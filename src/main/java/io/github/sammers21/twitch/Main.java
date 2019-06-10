@@ -11,7 +11,11 @@ import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -25,7 +29,7 @@ public class Main {
     private static String CARBON_HOST;
     private static Integer CARBON_PORT;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws SocketException, UnknownHostException {
         String token = args[0];
         CARBON_HOST = args[1];
         CARBON_PORT = Integer.parseInt(args[2]);
@@ -56,16 +60,22 @@ public class Main {
             messagesPerSec.mark();
             log.info("[{}] {}: {}", channelName, ok.getUser().getName(), ok.getMessage());
         });
+
     }
 
-    private static void initReporters(MetricRegistry metricRegistry) {
-        Graphite graphite = new Graphite(new InetSocketAddress(CARBON_HOST, CARBON_PORT));
-        final GraphiteReporter reporter = GraphiteReporter.forRegistry(metricRegistry)
-                .prefixedWith("twitch.chat")
-                .convertRatesTo(TimeUnit.SECONDS)
-                .convertDurationsTo(TimeUnit.MILLISECONDS)
-                .filter(MetricFilter.ALL)
-                .build(graphite);
-        reporter.start(1, TimeUnit.SECONDS);
+    private static void initReporters(MetricRegistry metricRegistry) throws UnknownHostException, SocketException {
+        try (final DatagramSocket socket = new DatagramSocket()) {
+            socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+            String ip = socket.getLocalAddress().getHostAddress();
+            log.info("Reporting from IP: '{}'", ip);
+            Graphite graphite = new Graphite(new InetSocketAddress(CARBON_HOST, CARBON_PORT));
+            final GraphiteReporter reporter = GraphiteReporter.forRegistry(metricRegistry)
+                    .prefixedWith(String.format("%s.twitch.chat", ip.replace(".", "_")))
+                    .convertRatesTo(TimeUnit.SECONDS)
+                    .convertDurationsTo(TimeUnit.MILLISECONDS)
+                    .filter(MetricFilter.ALL)
+                    .build(graphite);
+            reporter.start(1, TimeUnit.SECONDS);
+        }
     }
 }
