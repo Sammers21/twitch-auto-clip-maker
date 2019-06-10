@@ -14,6 +14,9 @@ plugins {
     id 'application'
 }
 
+
+mainClassName = 'io,github.sammers21.Main'
+
 repositories {
     jcenter()
     maven { url "https://oss.jfrog.org/artifactory/libs-release" }
@@ -28,12 +31,18 @@ dependencies {
 
     compile group: 'io.dropwizard.metrics', name: 'metrics-core', version: '4.0.0'
     compile group: 'io.dropwizard.metrics', name: 'metrics-graphite', version: '4.0.0'
-    
+
 //    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.0.9'
 
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'
 }
 
-// Define the main class for the application
-mainClassName = 'io.github.Sammers21.twitch.App'
+
+jar {
+    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    manifest {
+        attributes 'Main-Class': mainClassName
+    }
+    archiveBaseName = "twitch-auto-clip"
+}
