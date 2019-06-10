@@ -34,8 +34,12 @@ public class Main {
             log.error("Should be at least 4 args");
             System.exit(-1);
         }
-
         List<String> channelToWatch = Arrays.stream(args).skip(3).collect(Collectors.toList());
+        log.info("Token={}", token);
+        log.info("CARBON_HOST={}", CARBON_HOST);
+        log.info("CARBON_PORT={}", CARBON_PORT);
+        log.info("Channels={}", channelToWatch.stream().collect(Collectors.joining(",", "[", "]")));
+
         MetricRegistry metricRegistry = new MetricRegistry();
         initReporters(metricRegistry);
         var credential = new OAuth2Credential("twitch", token);
