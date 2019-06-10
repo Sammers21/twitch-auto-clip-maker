@@ -8,7 +8,9 @@ import com.codahale.metrics.graphite.GraphiteReporter;
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
 import com.github.twitch4j.TwitchClientBuilder;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +21,10 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 
@@ -28,9 +33,9 @@ public class Main {
     private static Logger log = LoggerFactory.getLogger(Main.class);
     private static String CARBON_HOST;
     private static Integer CARBON_PORT;
+    private static final Map<String, AtomicInteger> viewersByChan = new ConcurrentHashMap<>();
 
     public static void main(String[] args) throws SocketException, UnknownHostException {
-        Vertx vertx = Vertx.vertx();
         String token = args[0];
         CARBON_HOST = args[1];
         CARBON_PORT = Integer.parseInt(args[2]);
@@ -40,6 +45,10 @@ public class Main {
             System.exit(-1);
         }
         List<String> channelToWatch = Arrays.stream(args).skip(3).collect(Collectors.toList());
+        Vertx vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(channelToWatch.size()));
+        channelToWatch.forEach(chan -> {
+            viewersByChan.put(chan, new AtomicInteger(0));
+        });
         log.info("Token={}", token);
         log.info("CARBON_HOST={}", CARBON_HOST);
         log.info("CARBON_PORT={}", CARBON_PORT);
@@ -59,12 +68,25 @@ public class Main {
         value.subscribe(ok -> {
             String channelName = ok.getChannel().getName();
             Meter messagesPerSec = metricRegistry.meter(String.format("channel.%s.messages", channelName));
+            Meter sym = metricRegistry.meter(String.format("channel.%s.messages", channelName));
             messagesPerSec.mark();
             log.info("[{}] {}: {}", channelName, ok.getUser().getName(), ok.getMessage());
         });
 
+        vertx.setPeriodic(2_000, periodic -> {
+            channelToWatch.forEach(chan -> {
+                vertx.executeBlocking((Future<Integer> event) -> {
+                    Integer viewerCount = twitchClient.getMessagingInterface().getChatters(chan).execute().getViewerCount();
+                    event.complete(viewerCount);
+                }, event -> {
+                    Integer viewerCount = event.result();
+                    viewersByChan.get(chan).set(viewerCount);
+                });
+            });
+        });
+
         channelToWatch.forEach(chan -> {
-            metricRegistry.gauge(String.format("channel.%s.viewers", chan), () -> () -> twitchClient.getMessagingInterface().getChatters(chan).execute().getViewerCount());
+            metricRegistry.gauge(String.format("channel.%s.viewers", chan), () -> () -> viewersByChan.get(chan).get());
         });
     }
 
