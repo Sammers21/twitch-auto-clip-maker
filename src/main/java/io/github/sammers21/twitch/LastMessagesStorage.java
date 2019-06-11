@@ -55,6 +55,20 @@ public class LastMessagesStorage {
         return customIndex(LastMessagesStorage::uniqWords);
     }
 
+    public synchronized Double spamUniqIndex() {
+        List<String> strings = lastMessages();
+        int messageCount = strings.size();
+        if (messageCount != 0) {
+            final Set<String> collected = strings.stream()
+                    .map(msg -> Arrays.stream(msg.split("\\s+")))
+                    .flatMap(stringStream -> stringStream)
+                    .collect(Collectors.toSet());
+            return (double) collected.size() / (double) messageCount;
+        } else {
+            return 1d;
+        }
+    }
+
     private static int uniqWords(String input) {
         if (input == null || input.isEmpty()) {
             return 0;

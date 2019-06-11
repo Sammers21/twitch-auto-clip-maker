@@ -14,11 +14,7 @@ import io.vertx.core.VertxOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -94,6 +90,7 @@ public class Main {
             metricRegistry.gauge(String.format("channel.%s.viewers", chan), () -> () -> viewersByChan.get(chan).get());
             metricRegistry.gauge(String.format("channel.%s.lenIndex", chan), () -> () -> storageByChan.get(chan).lenIndex());
             metricRegistry.gauge(String.format("channel.%s.uniqWordsIndex", chan), () -> () -> storageByChan.get(chan).uniqWordsIndex());
+            metricRegistry.gauge(String.format("channel.%s.spamUniqIndex", chan), () -> () -> storageByChan.get(chan).spamUniqIndex());
         });
     }
 
