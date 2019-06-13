@@ -6,7 +6,9 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
+import com.github.twitch4j.TwitchClient;
 import com.github.twitch4j.TwitchClientBuilder;
+import com.github.twitch4j.chat.TwitchChat;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -64,6 +66,11 @@ public class Main {
                 .build();
         var chat = twitchClient.getChat();
         channelToWatch.forEach(chat::joinChannel);
+        reportMetrics(channelToWatch, vertx, metricRegistry, twitchClient, chat);
+//        twitchClient.getHelix().createClip()
+    }
+
+    private static void reportMetrics(List<String> channelToWatch, Vertx vertx, MetricRegistry metricRegistry, TwitchClient twitchClient, TwitchChat chat) {
         var value = chat.getEventManager().onEvent(ChannelMessageEvent.class);
         value.subscribe((ChannelMessageEvent ok) -> {
             String channelName = ok.getChannel().getName();
