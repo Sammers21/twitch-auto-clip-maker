@@ -70,7 +70,11 @@ public class Main {
         reportMetrics(channelToWatch, vertx, metricRegistry, twitchClient, chat);
         final HttpServer httpServer = vertx.createHttpServer();
         final Router router = Router.router(vertx);
-
+        router.route().handler(event -> {
+            log.info("A request received from:{}", event.request().host());
+            event.response().end("OK");
+        });
+        httpServer.requestHandler(router).listen(80);
     }
 
     private static void reportMetrics(Set<String> channelToWatch, Vertx vertx, MetricRegistry metricRegistry, TwitchClient twitchClient, TwitchChat chat) {
