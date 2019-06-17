@@ -13,13 +13,15 @@ import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.http.HttpServer;
+import io.vertx.ext.web.Router;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.*;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,7 +33,6 @@ public class Main {
     private static Logger log = LoggerFactory.getLogger(Main.class);
     private static String CARBON_HOST;
     private static Integer CARBON_PORT;
-    private static Integer STORE_MESSAGES_LAST_MILLIS;
     private static final Map<String, AtomicInteger> viewersByChan = new ConcurrentHashMap<>();
     private static final Map<String, LastMessagesStorage> storageByChan = new ConcurrentHashMap<>();
 
@@ -39,17 +40,16 @@ public class Main {
         String token = args[0];
         CARBON_HOST = args[1];
         CARBON_PORT = Integer.parseInt(args[2]);
-        STORE_MESSAGES_LAST_MILLIS = Integer.parseInt(args[3]);
 
         if (args.length < 5) {
             log.error("Should be at least 4 args");
             System.exit(-1);
         }
-        List<String> channelToWatch = Arrays.stream(args).skip(4).collect(Collectors.toList());
+        Set<String> channelToWatch = Arrays.stream(args).skip(4).collect(Collectors.toSet());
         Vertx vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(channelToWatch.size()));
         channelToWatch.forEach(chan -> {
             viewersByChan.put(chan, new AtomicInteger(0));
-            storageByChan.put(chan, new LastMessagesStorage(STORE_MESSAGES_LAST_MILLIS));
+            storageByChan.put(chan, new LastMessagesStorage(20_000));
         });
         log.info("Token={}", token);
         log.info("CARBON_HOST={}", CARBON_HOST);
@@ -68,15 +68,18 @@ public class Main {
         channelToWatch.forEach(chat::joinChannel);
         reportMetrics(channelToWatch, vertx, metricRegistry, twitchClient, chat);
 //        twitchClient.getHelix().createClip()
+        final HttpServer httpServer = vertx.createHttpServer();
+        final Router router = Router.router(vertx);
+
     }
 
-    private static void reportMetrics(List<String> channelToWatch, Vertx vertx, MetricRegistry metricRegistry, TwitchClient twitchClient, TwitchChat chat) {
+    private static void reportMetrics(Set<String> channelToWatch, Vertx vertx, MetricRegistry metricRegistry, TwitchClient twitchClient, TwitchChat chat) {
         var value = chat.getEventManager().onEvent(ChannelMessageEvent.class);
         value.subscribe((ChannelMessageEvent ok) -> {
             String channelName = ok.getChannel().getName();
             Meter messagesPerSec = metricRegistry.meter(String.format("channel.%s.messages", channelName));
             messagesPerSec.mark();
-            log.info("[{}] {}: {}", channelName, ok.getUser().getName(), ok.getMessage());
+//            log.info("[{}] {}: {}", channelName, ok.getUser().getName(), ok.getMessage());
             LastMessagesStorage lastMessagesStorage = storageByChan.get(channelName);
             lastMessagesStorage.push(ok);
         });

@@ -31,7 +31,7 @@ public class LastMessagesStorage {
 
     private synchronized void removeExpired() {
         while (messages.size() != 0 &&
-                messages.peek().getFiredAt().toInstant().toEpochMilli() < Instant.now().toEpochMilli() - storeMessagesForTheLastMillis) {
+                messages.peekLast().getFiredAt().toInstant().toEpochMilli() < Instant.now().toEpochMilli() - storeMessagesForTheLastMillis) {
             messages.pop();
         }
     }
