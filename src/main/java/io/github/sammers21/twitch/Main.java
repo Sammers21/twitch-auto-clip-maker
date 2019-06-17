@@ -13,8 +13,8 @@ import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import io.vertx.core.http.HttpServer;
-import io.vertx.ext.web.Router;
+import io.vertx.core.json.JsonObject;
+import io.vertx.reactivex.ext.web.client.WebClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 
@@ -33,21 +34,32 @@ public class Main {
 
     private static Logger log = LoggerFactory.getLogger(Main.class);
     private static String CARBON_HOST;
+    private static String CLIENT_ID;
+    private static String CLIENT_SECRET;
+    private static AtomicReference<String> BEARER_TOKEN = new AtomicReference<>(null);
     private static Integer CARBON_PORT;
     private static final Map<String, AtomicInteger> viewersByChan = new ConcurrentHashMap<>();
     private static final Map<String, LastMessagesStorage> storageByChan = new ConcurrentHashMap<>();
+    private static Vertx vertx;
+    private static WebClient webClient;
 
     public static void main(String[] args) throws SocketException, UnknownHostException {
         String token = args[0];
         CARBON_HOST = args[1];
         CARBON_PORT = Integer.parseInt(args[2]);
+        CLIENT_ID = args[3];
+        CLIENT_SECRET = args[4];
 
-        if (args.length < 4) {
-            log.error("Should be at least 4 args");
+        if (args.length < 6) {
+            log.error("Should be at least 6 args");
             System.exit(-1);
         }
-        Set<String> channelToWatch = Arrays.stream(args).skip(3).collect(Collectors.toSet());
-        Vertx vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(channelToWatch.size()));
+
+        Set<String> channelToWatch = Arrays.stream(args).skip(5).collect(Collectors.toSet());
+        vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(channelToWatch.size()));
+        webClient = WebClient.create(io.vertx.reactivex.core.Vertx.newInstance(vertx));
+        requestBearerToken();
+
         channelToWatch.forEach(chan -> {
             viewersByChan.put(chan, new AtomicInteger(0));
             storageByChan.put(chan, new LastMessagesStorage(60_000));
@@ -55,7 +67,10 @@ public class Main {
         log.info("Token={}", token);
         log.info("CARBON_HOST={}", CARBON_HOST);
         log.info("CARBON_PORT={}", CARBON_PORT);
+        log.info("CLIENT_ID={}", CLIENT_ID);
+        log.info("CLIENT_SECRET={}", CLIENT_SECRET);
         log.info("Channels={}", channelToWatch.stream().collect(Collectors.joining(",", "[", "]")));
+
 
         MetricRegistry metricRegistry = new MetricRegistry();
         initReporters(metricRegistry);
@@ -63,18 +78,30 @@ public class Main {
         var twitchClient = TwitchClientBuilder.builder()
                 .withEnableChat(true)
                 .withEnableTMI(true)
+                .withEnableHelix(true)
                 .withChatAccount(credential)
                 .build();
+
         var chat = twitchClient.getChat();
         channelToWatch.forEach(chat::joinChannel);
         reportMetrics(channelToWatch, vertx, metricRegistry, twitchClient, chat);
-        final HttpServer httpServer = vertx.createHttpServer();
-        final Router router = Router.router(vertx);
-        router.route().handler(event -> {
-            log.info("A request received from:{}", event.request().host());
-            event.response().end("OK");
+
+    }
+
+    private static void requestBearerToken() {
+        final JsonObject entries = webClient.postAbs("https://id.twitch.tv/oauth2/token")
+                .addQueryParam("client_id", CLIENT_ID)
+                .addQueryParam("client_secret", CLIENT_SECRET)
+                .addQueryParam("grant_type", "client_credentials")
+                .addQueryParam("scope", "clips:edit")
+                .rxSend().blockingGet().bodyAsJsonObject();
+        final Integer expiresIn = entries.getInteger("expires_in");
+        BEARER_TOKEN.set(entries.getString("access_token"));
+        log.info("Bearer token is:'{}'. Will expire in: {}s", BEARER_TOKEN.get(), expiresIn);
+        vertx.setTimer((expiresIn - 60) * 1_000, event -> {
+            log.info("Refreshing bearer token....");
+            requestBearerToken();
         });
-        httpServer.requestHandler(router).listen(80);
     }
 
     private static void reportMetrics(Set<String> channelToWatch, Vertx vertx, MetricRegistry metricRegistry, TwitchClient twitchClient, TwitchChat chat) {
@@ -83,12 +110,11 @@ public class Main {
             String channelName = ok.getChannel().getName();
             Meter messagesPerSec = metricRegistry.meter(String.format("channel.%s.messages", channelName));
             messagesPerSec.mark();
-            log.info("[{}] {}: {}", channelName, ok.getUser().getName(), ok.getMessage());
             LastMessagesStorage lastMessagesStorage = storageByChan.get(channelName);
             lastMessagesStorage.push(ok);
         });
 
-        vertx.setPeriodic(2_000, periodic -> {
+        vertx.setPeriodic(10_000, periodic -> {
             channelToWatch.forEach(chan -> {
                 vertx.executeBlocking((Future<Integer> event) -> {
                     Integer viewerCount = twitchClient.getMessagingInterface().getChatters(chan).execute().getViewerCount();

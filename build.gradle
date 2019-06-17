@@ -30,7 +30,8 @@ dependencies {
     //vertx
     compile group: 'io.vertx', name: 'vertx-core', version: '3.7.1'
     compile group: 'io.vertx', name: 'vertx-web', version: '3.7.1'
-
+    compile group: 'io.vertx', name: 'vertx-web-client', version: '3.7.1'
+    compile group: 'io.vertx', name: 'vertx-rx-java2', version: '3.7.1'
     // metrics 
     compile group: 'io.dropwizard.metrics', name: 'metrics-core', version: '4.0.0'
     compile group: 'io.dropwizard.metrics', name: 'metrics-graphite', version: '4.0.0'
