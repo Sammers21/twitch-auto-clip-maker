@@ -8,12 +8,13 @@ import com.codahale.metrics.graphite.GraphiteReporter;
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
 import com.github.twitch4j.TwitchClient;
 import com.github.twitch4j.TwitchClientBuilder;
-import com.github.twitch4j.chat.TwitchChat;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
+import io.vertx.reactivex.core.buffer.Buffer;
+import io.vertx.reactivex.ext.web.client.HttpRequest;
 import io.vertx.reactivex.ext.web.client.WebClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,8 +41,10 @@ public class Main {
     private static Integer CARBON_PORT;
     private static final Map<String, AtomicInteger> viewersByChan = new ConcurrentHashMap<>();
     private static final Map<String, LastMessagesStorage> storageByChan = new ConcurrentHashMap<>();
+    private static final Map<String, JsonObject> streamersAndInfo = new ConcurrentHashMap<>();
     private static Vertx vertx;
     private static WebClient webClient;
+    private static TwitchClient twitchClient;
 
     public static void main(String[] args) throws SocketException, UnknownHostException {
         String token = args[0];
@@ -58,12 +61,18 @@ public class Main {
         Set<String> channelToWatch = Arrays.stream(args).skip(5).collect(Collectors.toSet());
         vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(channelToWatch.size()));
         webClient = WebClient.create(io.vertx.reactivex.core.Vertx.newInstance(vertx));
-        requestBearerToken();
+        var credential = new OAuth2Credential("twitch", token);
+        twitchClient = TwitchClientBuilder.builder()
+                .withEnableChat(true)
+                .withEnableTMI(true)
+                .withEnableHelix(true)
+                .withChatAccount(credential)
+                .build();
 
-        channelToWatch.forEach(chan -> {
-            viewersByChan.put(chan, new AtomicInteger(0));
-            storageByChan.put(chan, new LastMessagesStorage(60_000));
-        });
+        requestBearerToken();
+        fillStreamersInfo(channelToWatch);
+        initStoragesAndViewersCounter(channelToWatch);
+
         log.info("Token={}", token);
         log.info("CARBON_HOST={}", CARBON_HOST);
         log.info("CARBON_PORT={}", CARBON_PORT);
@@ -74,18 +83,34 @@ public class Main {
 
         MetricRegistry metricRegistry = new MetricRegistry();
         initReporters(metricRegistry);
-        var credential = new OAuth2Credential("twitch", token);
-        var twitchClient = TwitchClientBuilder.builder()
-                .withEnableChat(true)
-                .withEnableTMI(true)
-                .withEnableHelix(true)
-                .withChatAccount(credential)
-                .build();
 
         var chat = twitchClient.getChat();
         channelToWatch.forEach(chat::joinChannel);
-        reportMetrics(channelToWatch, vertx, metricRegistry, twitchClient, chat);
+        reportMetrics(channelToWatch, vertx, metricRegistry, twitchClient);
+    }
 
+    private static void initStoragesAndViewersCounter(Set<String> channelToWatch) {
+        channelToWatch.forEach(chan -> {
+            viewersByChan.put(chan, new AtomicInteger(0));
+            storageByChan.put(chan, new LastMessagesStorage(60_000));
+        });
+    }
+
+    private static void fillStreamersInfo(Set<String> channelToWatch) {
+        final HttpRequest<Buffer> infoRequest = webClient.getAbs("https://api.twitch.tv/helix/streams")
+                .putHeader("Client-ID", CLIENT_ID)
+                .addQueryParam("first", String.valueOf(100))
+                .addQueryParam("token", BEARER_TOKEN.get());
+        channelToWatch.forEach(chan -> {
+            infoRequest.addQueryParam("user_login", chan);
+        });
+        final JsonObject entries = infoRequest.rxSend().blockingGet().bodyAsJsonObject();
+        entries.getJsonArray("data").stream().map(o -> (JsonObject) o).forEach(json -> {
+            streamersAndInfo.put(json.getString("user_name").toLowerCase(), json);
+        });
+
+        log.info("Streamers info:{}", entries.encodePrettily());
+        log.info("Fetched:{}, total:{}", streamersAndInfo.size(), channelToWatch.size());
     }
 
     private static void requestBearerToken() {
@@ -104,8 +129,8 @@ public class Main {
         });
     }
 
-    private static void reportMetrics(Set<String> channelToWatch, Vertx vertx, MetricRegistry metricRegistry, TwitchClient twitchClient, TwitchChat chat) {
-        var value = chat.getEventManager().onEvent(ChannelMessageEvent.class);
+    private static void reportMetrics(Set<String> channelToWatch, Vertx vertx, MetricRegistry metricRegistry, TwitchClient twitchClient) {
+        var value = twitchClient.getChat().getEventManager().onEvent(ChannelMessageEvent.class);
         value.subscribe((ChannelMessageEvent ok) -> {
             String channelName = ok.getChannel().getName();
             Meter messagesPerSec = metricRegistry.meter(String.format("channel.%s.messages", channelName));
