@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 
 import java.net.*;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,11 +42,11 @@ public class Main {
         CARBON_HOST = args[1];
         CARBON_PORT = Integer.parseInt(args[2]);
 
-        if (args.length < 5) {
+        if (args.length < 4) {
             log.error("Should be at least 4 args");
             System.exit(-1);
         }
-        Set<String> channelToWatch = Arrays.stream(args).skip(4).collect(Collectors.toSet());
+        Set<String> channelToWatch = Arrays.stream(args).skip(3).collect(Collectors.toSet());
         Vertx vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(channelToWatch.size()));
         channelToWatch.forEach(chan -> {
             viewersByChan.put(chan, new AtomicInteger(0));
@@ -79,7 +80,7 @@ public class Main {
             String channelName = ok.getChannel().getName();
             Meter messagesPerSec = metricRegistry.meter(String.format("channel.%s.messages", channelName));
             messagesPerSec.mark();
-//            log.info("[{}] {}: {}", channelName, ok.getUser().getName(), ok.getMessage());
+            log.info("[{}] {}: {}", channelName, ok.getUser().getName(), ok.getMessage());
             LastMessagesStorage lastMessagesStorage = storageByChan.get(channelName);
             lastMessagesStorage.push(ok);
         });
@@ -98,9 +99,11 @@ public class Main {
 
         channelToWatch.forEach(chan -> {
             metricRegistry.gauge(String.format("channel.%s.viewers", chan), () -> () -> viewersByChan.get(chan).get());
-            metricRegistry.gauge(String.format("channel.%s.lenIndex", chan), () -> () -> storageByChan.get(chan).lenIndex());
-            metricRegistry.gauge(String.format("channel.%s.uniqWordsIndex", chan), () -> () -> storageByChan.get(chan).uniqWordsIndex());
-            metricRegistry.gauge(String.format("channel.%s.spamUniqIndex", chan), () -> () -> storageByChan.get(chan).spamUniqIndex());
+            List.of(1, 2, 3, 4).stream().map(integer -> integer * 5_000).forEach(integer -> {
+                metricRegistry.gauge(String.format("channel.%s.lenIndex", chan), () -> () -> storageByChan.get(chan).lenIndex(integer));
+                metricRegistry.gauge(String.format("channel.%s.uniqWordsIndex", chan), () -> () -> storageByChan.get(chan).uniqWordsIndex(integer));
+                metricRegistry.gauge(String.format("channel.%s.spamUniqIndex", chan), () -> () -> storageByChan.get(chan).spamUniqIndex(integer));
+            });
         });
     }
 

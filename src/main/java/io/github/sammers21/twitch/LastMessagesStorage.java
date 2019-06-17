@@ -24,9 +24,14 @@ public class LastMessagesStorage {
         messages.push(messageEvent);
     }
 
-    public synchronized List<String> lastMessages() {
+    public synchronized List<String> lastMessages(Integer periodOfTime) {
         removeExpired();
-        return messages.stream().map(ChannelMessageEvent::getMessage).collect(Collectors.toList());
+        final long now = Instant.now().toEpochMilli();
+        return messages.stream()
+                .filter(channelMessageEvent ->
+                        (now - channelMessageEvent.getFiredAt().toInstant().toEpochMilli()) < periodOfTime
+                )
+                .map(ChannelMessageEvent::getMessage).collect(Collectors.toList());
     }
 
     private synchronized void removeExpired() {
@@ -36,27 +41,27 @@ public class LastMessagesStorage {
         }
     }
 
-    public synchronized Double lenIndex() {
-        return customIndex(String::length);
+    public synchronized Double lenIndex(Integer periodOfTime) {
+        return customIndex(periodOfTime, String::length);
     }
 
-    private synchronized Double customIndex(Function<String, Integer> countProcedure) {
-        List<String> strings = lastMessages();
+    private synchronized Double customIndex(Integer periodOfTime, Function<String, Integer> countProcedure) {
+        List<String> strings = lastMessages(periodOfTime);
         int messageCount = strings.size();
         if (messageCount != 0) {
             Integer reducedMessages = strings.stream().map(countProcedure).reduce(Integer::sum).get();
             return Double.valueOf(reducedMessages) / (double) messageCount;
         } else {
-            return 1d;
+            return 0d;
         }
     }
 
-    public synchronized Double uniqWordsIndex() {
-        return customIndex(LastMessagesStorage::uniqWords);
+    public synchronized Double uniqWordsIndex(Integer periodOfTime) {
+        return customIndex(periodOfTime, LastMessagesStorage::uniqWords);
     }
 
-    public synchronized Double spamUniqIndex() {
-        List<String> strings = lastMessages();
+    public synchronized Double spamUniqIndex(Integer periodOfTime) {
+        List<String> strings = lastMessages(periodOfTime);
         int messageCount = strings.size();
         if (messageCount != 0) {
             final Set<String> collected = strings.stream()
@@ -65,7 +70,7 @@ public class LastMessagesStorage {
                     .collect(Collectors.toSet());
             return (double) collected.size() / (double) messageCount;
         } else {
-            return 1d;
+            return 0d;
         }
     }
 
