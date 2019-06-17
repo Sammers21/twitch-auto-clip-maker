@@ -50,7 +50,7 @@ public class Main {
         Vertx vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(channelToWatch.size()));
         channelToWatch.forEach(chan -> {
             viewersByChan.put(chan, new AtomicInteger(0));
-            storageByChan.put(chan, new LastMessagesStorage(20_000));
+            storageByChan.put(chan, new LastMessagesStorage(60_000));
         });
         log.info("Token={}", token);
         log.info("CARBON_HOST={}", CARBON_HOST);
@@ -68,7 +68,6 @@ public class Main {
         var chat = twitchClient.getChat();
         channelToWatch.forEach(chat::joinChannel);
         reportMetrics(channelToWatch, vertx, metricRegistry, twitchClient, chat);
-//        twitchClient.getHelix().createClip()
         final HttpServer httpServer = vertx.createHttpServer();
         final Router router = Router.router(vertx);
 
@@ -99,10 +98,15 @@ public class Main {
 
         channelToWatch.forEach(chan -> {
             metricRegistry.gauge(String.format("channel.%s.viewers", chan), () -> () -> viewersByChan.get(chan).get());
-            List.of(1, 2, 3, 4).stream().map(integer -> integer * 5_000).forEach(integer -> {
-                metricRegistry.gauge(String.format("channel.%s.lenIndex", chan), () -> () -> storageByChan.get(chan).lenIndex(integer));
-                metricRegistry.gauge(String.format("channel.%s.uniqWordsIndex", chan), () -> () -> storageByChan.get(chan).uniqWordsIndex(integer));
-                metricRegistry.gauge(String.format("channel.%s.spamUniqIndex", chan), () -> () -> storageByChan.get(chan).spamUniqIndex(integer));
+            List.of(1, 2, 3, 4, 5, 6).stream().map(integer -> integer * 5_000).forEach(integer -> {
+                final int metricNum = integer / 1000;
+                metricRegistry.gauge(String.format("channel.%s.lenIndex.%d", chan, metricNum), () -> () -> {
+                    final Double aDouble = storageByChan.get(chan).lenIndex(integer);
+                    log.info("[{}] Reporting len index {}", chan, aDouble);
+                    return aDouble;
+                });
+                metricRegistry.gauge(String.format("channel.%s.uniqWordsIndex.%d", chan, metricNum), () -> () -> storageByChan.get(chan).uniqWordsIndex(integer));
+                metricRegistry.gauge(String.format("channel.%s.spamUniqIndex.%d", chan, metricNum), () -> () -> storageByChan.get(chan).spamUniqIndex(integer));
             });
         });
     }
