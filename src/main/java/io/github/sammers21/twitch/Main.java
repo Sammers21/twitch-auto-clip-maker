@@ -20,10 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -79,7 +76,6 @@ public class Main {
         log.info("CLIENT_ID={}", CLIENT_ID);
         log.info("CLIENT_SECRET={}", CLIENT_SECRET);
         log.info("Channels={}", channelToWatch.stream().collect(Collectors.joining(",", "[", "]")));
-
 
         MetricRegistry metricRegistry = new MetricRegistry();
         initReporters(metricRegistry);
@@ -139,13 +135,14 @@ public class Main {
             lastMessagesStorage.push(ok);
         });
 
-        vertx.setPeriodic(10_000, periodic -> {
+        vertx.setPeriodic(15_000, periodic -> {
             channelToWatch.forEach(chan -> {
                 vertx.executeBlocking((Future<Integer> event) -> {
                     Integer viewerCount = twitchClient.getMessagingInterface().getChatters(chan).execute().getViewerCount();
                     event.complete(viewerCount);
                 }, event -> {
                     Integer viewerCount = event.result();
+                    Objects.requireNonNull(viewerCount);
                     viewersByChan.get(chan).set(viewerCount);
                 });
             });
