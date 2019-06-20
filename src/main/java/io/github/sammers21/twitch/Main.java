@@ -18,6 +18,12 @@ import io.vertx.reactivex.core.http.HttpServer;
 import io.vertx.reactivex.ext.web.Router;
 import io.vertx.reactivex.ext.web.client.HttpRequest;
 import io.vertx.reactivex.ext.web.client.WebClient;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,23 +58,33 @@ public class Main {
     private static Vertx vertx;
     private static WebClient webClient;
     private static TwitchClient twitchClient;
+    private static Set<String> CHANNELS_TO_WATCH;
+    private static String TOKEN;
 
-    public static void main(String[] args) throws SocketException, UnknownHostException {
-        String token = args[0];
-        CARBON_HOST = args[1];
-        CARBON_PORT = Integer.parseInt(args[2]);
-        CLIENT_ID = args[3];
-        CLIENT_SECRET = args[4];
+    public static void main(String[] args) throws SocketException, UnknownHostException, ParseException {
+        Options options = new Options();
+        options.addOption("token", true, "token");
+        options.addOption("carbon_host", true, "carbon host");
+        options.addOption("carbon_port", true, "carbon port");
+        options.addOption("client_id", true, "client id");
+        options.addOption("client_secret", true, "client secret");
+        options.addOption(Option.builder().argName("streamers").hasArg(true).longOpt("streamers").build());
+        CommandLineParser parser = new DefaultParser();
+        CommandLine cmd = parser.parse(options, args);
 
-        if (args.length < 6) {
-            log.error("Should be at least 6 args");
-            System.exit(-1);
+        TOKEN = cmd.getOptionValue("token");
+        CARBON_HOST = cmd.getOptionValue("carbon_host");
+        CARBON_PORT = Integer.parseInt(cmd.getOptionValue("carbon_port"));
+        CLIENT_ID = cmd.getOptionValue("client_id");
+        CLIENT_SECRET = cmd.getOptionValue("client_secret");
+        CHANNELS_TO_WATCH = Arrays.stream(cmd.getOptionValue("streamers").split(",")).collect(Collectors.toSet());
+        if (CHANNELS_TO_WATCH.size() == 0) {
+            throw new IllegalStateException("No channels to watch");
         }
 
-        Set<String> channelToWatch = Arrays.stream(args).skip(5).collect(Collectors.toSet());
-        vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(channelToWatch.size()));
+        vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(CHANNELS_TO_WATCH.size()));
         webClient = WebClient.create(vertx);
-        var credential = new OAuth2Credential("twitch", token);
+        var credential = new OAuth2Credential("twitch", TOKEN);
         twitchClient = TwitchClientBuilder.builder()
                 .withEnableChat(true)
                 .withEnableTMI(true)
@@ -77,22 +93,22 @@ public class Main {
                 .build();
 
         requestBearerToken();
-        fillStreamersInfo(channelToWatch);
-        initStoragesAndViewersCounter(channelToWatch);
+        fillStreamersInfo(CHANNELS_TO_WATCH);
+        initStoragesAndViewersCounter(CHANNELS_TO_WATCH);
 
-        log.info("Token={}", token);
+        log.info("Token={}", TOKEN);
         log.info("CARBON_HOST={}", CARBON_HOST);
         log.info("CARBON_PORT={}", CARBON_PORT);
         log.info("CLIENT_ID={}", CLIENT_ID);
         log.info("CLIENT_SECRET={}", CLIENT_SECRET);
-        log.info("Channels={}", channelToWatch.stream().collect(Collectors.joining(",", "[", "]")));
+        log.info("Channels={}", CHANNELS_TO_WATCH.stream().collect(Collectors.joining(",", "[", "]")));
 
         MetricRegistry metricRegistry = new MetricRegistry();
         initReporters(metricRegistry);
 
         var chat = twitchClient.getChat();
-        channelToWatch.forEach(chat::joinChannel);
-        reportMetrics(channelToWatch, vertx, metricRegistry, twitchClient);
+        CHANNELS_TO_WATCH.forEach(chat::joinChannel);
+        reportMetrics(CHANNELS_TO_WATCH, vertx, metricRegistry, twitchClient);
         intiServer();
     }
 
