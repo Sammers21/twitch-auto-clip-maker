@@ -10,17 +10,27 @@ import com.github.twitch4j.TwitchClient;
 import com.github.twitch4j.TwitchClientBuilder;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
+import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.buffer.Buffer;
+import io.vertx.reactivex.core.http.HttpServer;
+import io.vertx.reactivex.ext.web.Router;
 import io.vertx.reactivex.ext.web.client.HttpRequest;
 import io.vertx.reactivex.ext.web.client.WebClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.*;
-import java.util.*;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -57,7 +67,7 @@ public class Main {
 
         Set<String> channelToWatch = Arrays.stream(args).skip(5).collect(Collectors.toSet());
         vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(channelToWatch.size()));
-        webClient = WebClient.create(io.vertx.reactivex.core.Vertx.newInstance(vertx));
+        webClient = WebClient.create(vertx);
         var credential = new OAuth2Credential("twitch", token);
         twitchClient = TwitchClientBuilder.builder()
                 .withEnableChat(true)
@@ -83,6 +93,18 @@ public class Main {
         var chat = twitchClient.getChat();
         channelToWatch.forEach(chat::joinChannel);
         reportMetrics(channelToWatch, vertx, metricRegistry, twitchClient);
+        intiServer();
+    }
+
+    private static void intiServer() {
+        final HttpServer httpServer = vertx.createHttpServer();
+        final Router router = Router.router(vertx);
+        router.route().handler(event -> {
+            final String query = event.request().query();
+            log.info("Query:{}", query);
+            event.response().end("OK");
+        });
+        httpServer.requestHandler(router).listen(80);
     }
 
     private static void initStoragesAndViewersCounter(Set<String> channelToWatch) {
@@ -137,7 +159,7 @@ public class Main {
 
         vertx.setPeriodic(15_000, periodic -> {
             channelToWatch.forEach(chan -> {
-                vertx.executeBlocking((Future<Integer> event) -> {
+                vertx.getDelegate().executeBlocking((Future<Integer> event) -> {
                     Integer viewerCount = twitchClient.getMessagingInterface().getChatters(chan).execute().getViewerCount();
                     event.complete(viewerCount);
                 }, event -> {
