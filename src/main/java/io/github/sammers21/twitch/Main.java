@@ -16,10 +16,8 @@ import io.vertx.core.Future;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.Vertx;
-import io.vertx.reactivex.core.buffer.Buffer;
 import io.vertx.reactivex.core.http.HttpServer;
 import io.vertx.reactivex.ext.web.Router;
-import io.vertx.reactivex.ext.web.client.HttpRequest;
 import io.vertx.reactivex.ext.web.client.WebClient;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -61,12 +59,12 @@ public class Main {
 
     private static final Map<String, AtomicInteger> viewersByChan = new ConcurrentHashMap<>();
     private static final Map<String, LastMessagesStorage> storageByChan = new ConcurrentHashMap<>();
-    private static final Map<String, JsonObject> streamersAndInfo = new ConcurrentHashMap<>();
 
     private static Vertx vertx;
     private static WebClient webClient;
     private static TwitchClient twitchClient;
     private static DbController dbController;
+    private static StreamsInfo streamsInfo;
 
     public static void main(String[] args) throws SocketException, UnknownHostException, ParseException {
         Options options = new Options();
@@ -117,7 +115,7 @@ public class Main {
                 .build();
 
         requestBearerToken();
-        fillStreamersInfo(CHANNELS_TO_WATCH);
+        streamsInfo = new StreamsInfo(vertx, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 30_000);
         initStoragesAndViewersCounter(CHANNELS_TO_WATCH);
 
         log.info("Token={}", TOKEN);
@@ -161,23 +159,6 @@ public class Main {
         });
     }
 
-    private static void fillStreamersInfo(Set<String> channelToWatch) {
-        final HttpRequest<Buffer> infoRequest = webClient.getAbs("https://api.twitch.tv/helix/streams")
-                .putHeader("Client-ID", CLIENT_ID)
-                .addQueryParam("first", String.valueOf(100))
-                .addQueryParam("token", BEARER_TOKEN.get());
-        channelToWatch.forEach(chan -> {
-            infoRequest.addQueryParam("user_login", chan);
-        });
-        final JsonObject entries = infoRequest.rxSend().blockingGet().bodyAsJsonObject();
-        entries.getJsonArray("data").stream().map(o -> (JsonObject) o).forEach(json -> {
-            streamersAndInfo.put(json.getString("user_name").toLowerCase(), json);
-        });
-
-        log.info("Streamers info:{}", entries.encodePrettily());
-        log.info("Fetched:{}, total:{}", streamersAndInfo.size(), channelToWatch.size());
-    }
-
     private static void requestBearerToken() {
         final JsonObject entries = webClient.postAbs("https://id.twitch.tv/oauth2/token")
                 .addQueryParam("client_id", CLIENT_ID)
@@ -204,7 +185,7 @@ public class Main {
             lastMessagesStorage.push(ok);
         });
 
-        vertx.setPeriodic(15_000, periodic -> {
+        vertx.setPeriodic(30_000, periodic -> {
             channelToWatch.forEach(chan -> {
                 vertx.getDelegate().executeBlocking((Future<Integer> event) -> {
                     Integer viewerCount = twitchClient.getMessagingInterface().getChatters(chan).execute().getViewerCount();
