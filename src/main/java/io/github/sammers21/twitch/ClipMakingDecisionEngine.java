@@ -46,7 +46,7 @@ public class ClipMakingDecisionEngine {
         });
     }
 
-    public boolean makeDecision() {
+    private boolean makeDecision() {
         List<ChannelMessageEvent> channelMessageEvents = lms.lastMessages(Math.toIntExact(TimeUnit.MINUTES.toMillis(2)));
         // msg per 10 seconds
         Map<Long, List<ChannelMessageEvent>> grouped = channelMessageEvents.stream().collect(Collectors.groupingBy(channelMessageEvent -> channelMessageEvent.getFiredAt().toInstant().getEpochSecond() / 10));
