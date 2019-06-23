@@ -101,7 +101,7 @@ public class Main {
                 .setHost(cmd.getOptionValue("pg_host"))
                 .setDatabase(cmd.getOptionValue("pd_db"))
                 .setUser(cmd.getOptionValue("pg_user"))
-                .setPassword("pg_password")
+                .setPassword(cmd.getOptionValue("pg_password"))
                 .setMaxSize(5);
 
         dbController = new DbController(PgClient.pool(pgOptions));
@@ -134,6 +134,7 @@ public class Main {
         CHANNELS_TO_WATCH.forEach(chat::joinChannel);
         reportMetrics(CHANNELS_TO_WATCH, vertx, metricRegistry, twitchClient);
         intiServer();
+        dbController.token().subscribe(ok -> log.info("User token form DB:'{}'", ok), err -> log.error("token fetch error", err));
     }
 
     private static void intiServer() {
