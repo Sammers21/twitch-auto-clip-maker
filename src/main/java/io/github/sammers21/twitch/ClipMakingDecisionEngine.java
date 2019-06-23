@@ -13,22 +13,34 @@ import java.util.stream.Collectors;
 
 public class ClipMakingDecisionEngine {
 
-    private static final Logger log = LoggerFactory.getLogger(ClipMakingDecisionEngine.class);
+    private final Logger log;
     private final String streamerName;
     private final LastMessagesStorage lms;
     private final Streams streams;
-    private final AtomicLong lastClipOn = new AtomicLong(0);
+    private final AtomicLong lastClipOnMillis = new AtomicLong(0);
 
     public ClipMakingDecisionEngine(Vertx vertx, String streamerName, LastMessagesStorage lms, Streams streams) {
+        log = LoggerFactory.getLogger(String.format("%s:[%s]", ClipMakingDecisionEngine.class.getName(), streamerName));
         this.streamerName = streamerName;
         this.lms = lms;
         this.streams = streams;
-        log.info("[{}]: Will make decisions in 2 mins", streamerName);
+        log.info("Will make decisions in 2 mins");
         vertx.setTimer(TimeUnit.MINUTES.toMillis(2), timer -> {
-            log.info("[{}]: Start making decisions", streamerName);
+            log.info("Start making decisions");
             vertx.setPeriodic(10_000, event -> {
-                if (makeDecision()) {
-                    streams.createClipOnChannel(streamerName).subscribe();
+                try {
+                    if (makeDecision()) {
+                        streams.createClipOnChannel(streamerName)
+                                .subscribe(
+                                        ok -> {
+                                            log.info("Clip created");
+                                            lastClipOnMillis.set(System.currentTimeMillis());
+                                        },
+                                        throwable -> log.error("Unable to create a clip:", throwable)
+                                );
+                    }
+                } catch (Throwable t) {
+                    log.error("Unexpected exception", t);
                 }
             });
         });
@@ -62,16 +74,14 @@ public class ClipMakingDecisionEngine {
                 } else {
                     decreases++;
                 }
-            } else {
-                increases++;
             }
             lastEntry = entry;
         }
 
         boolean increaseQuorum = increases > decreases;
-        boolean clipMakingLimit = (System.currentTimeMillis() - lastClipOn.get()) > TimeUnit.MINUTES.toMillis(15);
+        boolean clipMakingLimit = (System.currentTimeMillis() - lastClipOnMillis.get()) > TimeUnit.MINUTES.toMillis(15);
         boolean resultedDecision = increaseQuorum && minRateLimit && rateIncrease && clipMakingLimit;
-        log.info("[{}]: Decision[{}] explained: increaseQuorum={}[inc={},dec={}], minRateLimit={}, rateIncrease={}, clipMakingLimit={}", streamerName, resultedDecision, increaseQuorum, increases, decreases, minRateLimit, rateIncrease, clipMakingLimit);
+        log.info("Decision[{}] explained: increaseQuorum={}[inc={},dec={}], minRateLimit={}, rateIncrease={}, clipMakingLimit={}", resultedDecision, increaseQuorum, increases, decreases, minRateLimit, rateIncrease, clipMakingLimit);
         return resultedDecision;
     }
 }
