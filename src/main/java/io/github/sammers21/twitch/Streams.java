@@ -67,9 +67,12 @@ public class Streams {
     }
 
     public Single<String> createClipOnChannel(String channelName) {
-        JsonObject entries = streamersAndInfo.get(channelName);
-        if (entries == null) {
-            return Single.error(new IllegalStateException("Streamer are not alive:" + channelName));
+        if (isOffline(channelName)) {
+            return Single.error(new IllegalStateException("Streamer is offline:" + channelName));
+        }
+        JsonObject entries;
+        synchronized (this) {
+            entries = streamersAndInfo.get(channelName);
         }
         String userId = entries.getString("user_id");
         HttpRequest<Buffer> clipReq = webClient.postAbs("https://api.twitch.tv/helix/clips");
@@ -86,6 +89,14 @@ public class Streams {
                 }, error -> {
                     log.error("Unable to insert a clip", error);
                 }));
+    }
+
+    public synchronized boolean isOnline(String channelName) {
+        return streamersAndInfo.get(channelName) != null;
+    }
+
+    public synchronized boolean isOffline(String channelName) {
+        return !isOnline(channelName);
     }
 
 }

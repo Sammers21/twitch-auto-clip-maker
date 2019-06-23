@@ -29,7 +29,7 @@ public class ClipMakingDecisionEngine {
             log.info("Start making decisions");
             vertx.setPeriodic(10_000, event -> {
                 try {
-                    if (makeDecision()) {
+                    if (streams.isOnline(streamerName) && makeDecision()) {
                         streams.createClipOnChannel(streamerName)
                                 .subscribe(
                                         ok -> {
