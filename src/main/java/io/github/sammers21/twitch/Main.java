@@ -156,7 +156,7 @@ public class Main {
     private static void initStoragesAndViewersCounter(Set<String> channelToWatch) {
         channelToWatch.forEach(chan -> {
             viewersByChan.put(chan, new AtomicInteger(0));
-            storageByChan.put(chan, new LastMessagesStorage(60_000));
+            storageByChan.put(chan, new LastMessagesStorage(2 * 60_000));
         });
     }
 

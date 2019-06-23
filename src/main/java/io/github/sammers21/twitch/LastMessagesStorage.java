@@ -24,14 +24,14 @@ public class LastMessagesStorage {
         messages.push(messageEvent);
     }
 
-    public synchronized List<String> lastMessages(Integer periodOfTime) {
+    public synchronized List<ChannelMessageEvent> lastMessages(Integer periodOfTime) {
         removeExpired();
         final long now = Instant.now().toEpochMilli();
         return messages.stream()
                 .filter(channelMessageEvent ->
                         (now - channelMessageEvent.getFiredAt().toInstant().toEpochMilli()) < periodOfTime
                 )
-                .map(ChannelMessageEvent::getMessage).collect(Collectors.toList());
+                .collect(Collectors.toList());
     }
 
     private synchronized void removeExpired() {
@@ -46,10 +46,12 @@ public class LastMessagesStorage {
     }
 
     private synchronized Double customIndex(Integer periodOfTime, Function<String, Integer> countProcedure) {
-        List<String> strings = lastMessages(periodOfTime);
+        List<ChannelMessageEvent> strings = lastMessages(periodOfTime);
         int messageCount = strings.size();
         if (messageCount != 0) {
-            Integer reducedMessages = strings.stream().map(countProcedure).reduce(Integer::sum).get();
+            Integer reducedMessages = strings.stream()
+                    .map(ChannelMessageEvent::getMessage)
+                    .map(countProcedure).reduce(Integer::sum).get();
             return Double.valueOf(reducedMessages) / (double) messageCount;
         } else {
             return 0d;
@@ -61,10 +63,11 @@ public class LastMessagesStorage {
     }
 
     public synchronized Double spamUniqIndex(Integer periodOfTime) {
-        List<String> strings = lastMessages(periodOfTime);
+        List<ChannelMessageEvent> strings = lastMessages(periodOfTime);
         int messageCount = strings.size();
         if (messageCount != 0) {
             final Set<String> collected = strings.stream()
+                    .map(ChannelMessageEvent::getMessage)
                     .map(msg -> Arrays.stream(msg.split("\\s+")))
                     .flatMap(stringStream -> stringStream)
                     .collect(Collectors.toSet());
