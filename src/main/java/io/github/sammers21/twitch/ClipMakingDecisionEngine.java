@@ -5,11 +5,14 @@ import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 public class ClipMakingDecisionEngine {
 
@@ -39,6 +42,8 @@ public class ClipMakingDecisionEngine {
                                         throwable -> log.error("Unable to create a clip:", throwable)
                                 );
                     }
+                } catch (NoSuchElementException e) {
+                    log.error("NLP");
                 } catch (Throwable t) {
                     log.error("Unexpected exception", t);
                 }
@@ -54,6 +59,12 @@ public class ClipMakingDecisionEngine {
         //removing first and last elems
         Long max = grouped.keySet().stream().max(Long::compareTo).get();
         Long min = grouped.keySet().stream().min(Long::compareTo).get();
+
+        //filling empty time windows
+        LongStream.range(min, max - 1).forEach(l -> {
+            grouped.computeIfAbsent(l, aLong -> new LinkedList<>());
+        });
+
         grouped.remove(max);
         grouped.remove(min);
 
