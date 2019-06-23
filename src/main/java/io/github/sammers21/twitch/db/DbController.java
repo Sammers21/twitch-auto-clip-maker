@@ -20,7 +20,7 @@ public class DbController {
 
     public Completable insertToken(String token) {
         return pgClient.rxPreparedQuery(
-                "INSERT into client_token(token) values (?)",
+                "INSERT into client_token(token) values ($1)",
                 Tuple.of(token)
         ).ignoreElement();
     }
