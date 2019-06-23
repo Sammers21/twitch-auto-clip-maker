@@ -1,5 +1,6 @@
 package io.github.sammers21.twitch;
 
+import io.github.sammers21.twitch.db.DbController;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
@@ -17,12 +18,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Streams {
     private static final Logger log = LoggerFactory.getLogger(Streams.class);
     private Map<String, JsonObject> streamersAndInfo = new ConcurrentHashMap<>();
+    private final DbController dbController;
     private final WebClient webClient;
     private final String clientId;
     private final String bearerToken;
     private final Set<String> channelsToWatch;
 
-    public Streams(Vertx vertx, WebClient webClient, String clientId, String bearerToken, Set<String> channelsToWatch, Integer updateEachMillis) {
+    public Streams(Vertx vertx, DbController dbController, WebClient webClient, String clientId, String bearerToken, Set<String> channelsToWatch, Integer updateEachMillis) {
+        this.dbController = dbController;
         this.webClient = webClient;
         this.clientId = clientId;
         this.bearerToken = bearerToken;
@@ -78,7 +81,12 @@ public class Streams {
             JsonObject arg = resp.bodyAsJsonObject();
             log.info("Clip endpoint response:\n{}", arg.encodePrettily());
             return arg.getJsonArray("data").getJsonObject(0).getString("id");
-        });
+        }).doOnSuccess(ok -> dbController.insertClip(ok, channelName, userId)
+                .subscribe(() -> {
+                    log.info("Clip is in the database");
+                }, error -> {
+                    log.error("Unable to insert a clip", error);
+                }));
     }
 
 }

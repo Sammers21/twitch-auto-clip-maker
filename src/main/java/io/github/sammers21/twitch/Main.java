@@ -116,7 +116,7 @@ public class Main {
 
         BEARER_TOKEN.set(dbController.token().blockingGet());
         log.info("User token form DB:'{}'", BEARER_TOKEN.get());
-        streams = new Streams(vertx, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 30_000);
+        streams = new Streams(vertx, dbController, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 30_000);
         initStoragesAndViewersCounter(CHANNELS_TO_WATCH);
 
         log.info("Token={}", TOKEN);
@@ -134,8 +134,7 @@ public class Main {
         CHANNELS_TO_WATCH.forEach(chat::joinChannel);
         reportMetrics(CHANNELS_TO_WATCH, vertx, metricRegistry, twitchClient);
         intiServer();
-        String dota2ruhubClip = streams.createClipOnChannel("dota2ruhub").blockingGet();
-        log.info("Clip id:'{}'", dota2ruhubClip);
+        streams.createClipOnChannel("dota2ruhub2").blockingGet();
     }
 
     private static void intiServer() {
