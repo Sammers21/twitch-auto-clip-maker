@@ -80,7 +80,7 @@ public class ClipMakingDecisionEngine {
         List<Map.Entry<Long, List<ChannelMessageEvent>>> sortedList = grouped.entrySet().stream().sorted(Comparator.comparingLong(Map.Entry::getKey)).collect(Collectors.toList());
 
         double minRm = (double) grouped.get(minAfterRemove).size() / 10d;
-        boolean minRateLimit = minRm > 0.5d;
+        boolean minRateLimit = minRm > 0.35d;
         double rateChangeRation = (double) grouped.get(maxAfterRemove).size() / (double) grouped.get(minAfterRemove).size();
         boolean rateIncrease = rateChangeRation > 3d;
 
@@ -102,7 +102,7 @@ public class ClipMakingDecisionEngine {
         boolean increaseQuorum = increases > decreases;
         boolean clipMakingLimit = (System.currentTimeMillis() - lastClipOnMillis.get()) > TimeUnit.MINUTES.toMillis(15);
         boolean resultedDecision = increaseQuorum && minRateLimit && rateIncrease && clipMakingLimit;
-        log.info("Decision[{}] explained: increaseQuorum={}[inc={},dec={}], minRateLimit={}[{}], rateIncrease={}[{}], clipMakingLimit={}", resultedDecision, increaseQuorum, increases, decreases, minRateLimit,minRm, rateIncrease,rateChangeRation, clipMakingLimit);
+        log.info("Decision[{}] explained: increaseQuorum={}[inc={},dec={}], minRateLimit={}[{}], rateIncrease={}[{}], clipMakingLimit={}", resultedDecision, increaseQuorum, increases, decreases, minRateLimit, String.format("%.02f", minRm), rateIncrease, rateChangeRation, clipMakingLimit);
         return resultedDecision;
     }
 }
