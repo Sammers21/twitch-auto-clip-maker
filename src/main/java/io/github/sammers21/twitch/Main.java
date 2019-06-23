@@ -14,7 +14,6 @@ import io.reactiverse.pgclient.PgPoolOptions;
 import io.reactiverse.reactivex.pgclient.PgClient;
 import io.vertx.core.Future;
 import io.vertx.core.VertxOptions;
-import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.http.HttpServer;
 import io.vertx.reactivex.ext.web.Router;
@@ -158,22 +157,6 @@ public class Main {
         channelToWatch.forEach(chan -> {
             viewersByChan.put(chan, new AtomicInteger(0));
             storageByChan.put(chan, new LastMessagesStorage(60_000));
-        });
-    }
-
-    private static void requestBearerToken() {
-        final JsonObject entries = webClient.postAbs("https://id.twitch.tv/oauth2/token")
-                .addQueryParam("client_id", CLIENT_ID)
-                .addQueryParam("client_secret", CLIENT_SECRET)
-                .addQueryParam("grant_type", "client_credentials")
-                .addQueryParam("scope", "clips:edit")
-                .rxSend().blockingGet().bodyAsJsonObject();
-        final Integer expiresIn = entries.getInteger("expires_in");
-        BEARER_TOKEN.set(entries.getString("access_token"));
-        log.info("Bearer token is:'{}'. Will expire in: {}s", BEARER_TOKEN.get(), expiresIn);
-        vertx.setTimer((expiresIn - 60) * 1_000, event -> {
-            log.info("Refreshing bearer token....");
-            requestBearerToken();
         });
     }
 
