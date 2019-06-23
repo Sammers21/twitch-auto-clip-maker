@@ -133,7 +133,6 @@ public class Main {
         CHANNELS_TO_WATCH.forEach(chat::joinChannel);
         reportMetrics(CHANNELS_TO_WATCH, vertx, metricRegistry, twitchClient);
         intiServer();
-        streams.createClipOnChannel("dota2ruhub2").blockingGet();
     }
 
     private static void intiServer() {
@@ -156,7 +155,9 @@ public class Main {
     private static void initStoragesAndViewersCounter(Set<String> channelToWatch) {
         channelToWatch.forEach(chan -> {
             viewersByChan.put(chan, new AtomicInteger(0));
-            storageByChan.put(chan, new LastMessagesStorage(2 * 60_000));
+            LastMessagesStorage storage = new LastMessagesStorage(2 * 60_000);
+            new ClipMakingDecisionEngine(vertx.getDelegate(), chan, storage, streams);
+            storageByChan.put(chan, storage);
         });
     }
 

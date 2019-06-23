@@ -42,7 +42,6 @@ public class Streams {
             entries.getJsonArray("data").stream().map(o -> (JsonObject) o).forEach(json -> {
                 streamsInfo.put(json.getString("user_name").toLowerCase(), json);
             });
-            log.info("Streamers info:{}", entries.encodePrettily());
             return streamsInfo;
         }).doOnSuccess(streamsInfo -> {
             synchronized (this) {
