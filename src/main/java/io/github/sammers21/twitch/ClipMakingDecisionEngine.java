@@ -52,13 +52,18 @@ public class ClipMakingDecisionEngine {
     }
 
     private boolean makeDecision() {
-        List<ChannelMessageEvent> channelMessageEvents = lms.lastMessages(Math.toIntExact(TimeUnit.MINUTES.toMillis(2)));
+        int intervalMinutes = 2;
+        long intervalMillis = TimeUnit.MINUTES.toMillis(intervalMinutes);
+        List<ChannelMessageEvent> channelMessageEvents = lms.lastMessages(Math.toIntExact(intervalMillis));
         // msg per 10 seconds
         Map<Long, List<ChannelMessageEvent>> grouped = channelMessageEvents.stream().collect(Collectors.groupingBy(channelMessageEvent -> channelMessageEvent.getFiredAt().toInstant().getEpochSecond() / 10));
 
+        long now = System.currentTimeMillis() / 10_000;
+        long minDefault = now - (intervalMillis / 10_000);
+
         //removing first and last elems
-        Long max = grouped.keySet().stream().max(Long::compareTo).get();
-        Long min = grouped.keySet().stream().min(Long::compareTo).get();
+        Long max = grouped.keySet().stream().max(Long::compareTo).orElse(now);
+        Long min = grouped.keySet().stream().min(Long::compareTo).orElse(minDefault);
 
         //filling empty time windows
         LongStream.range(min, max - 1).forEach(l -> {
@@ -80,7 +85,7 @@ public class ClipMakingDecisionEngine {
         Map.Entry<Long, List<ChannelMessageEvent>> lastEntry = null;
         for (Map.Entry<Long, List<ChannelMessageEvent>> entry : grouped.entrySet()) {
             if (lastEntry != null) {
-                if (entry.getValue().size() >= lastEntry.getValue().size()) {
+                if (entry.getValue().size() > lastEntry.getValue().size()) {
                     increases++;
                 } else {
                     decreases++;
