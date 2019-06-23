@@ -9,6 +9,9 @@ import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
 import com.github.twitch4j.TwitchClient;
 import com.github.twitch4j.TwitchClientBuilder;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
+import io.github.sammers21.twitch.db.DbController;
+import io.reactiverse.pgclient.PgPoolOptions;
+import io.reactiverse.reactivex.pgclient.PgClient;
 import io.vertx.core.Future;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
@@ -52,14 +55,18 @@ public class Main {
     private static String CLIENT_SECRET;
     private static AtomicReference<String> BEARER_TOKEN = new AtomicReference<>(null);
     private static Integer CARBON_PORT;
+    private static int HTTP_PORT;
+    private static String TOKEN;
+    private static Set<String> CHANNELS_TO_WATCH;
+
     private static final Map<String, AtomicInteger> viewersByChan = new ConcurrentHashMap<>();
     private static final Map<String, LastMessagesStorage> storageByChan = new ConcurrentHashMap<>();
     private static final Map<String, JsonObject> streamersAndInfo = new ConcurrentHashMap<>();
+
     private static Vertx vertx;
     private static WebClient webClient;
     private static TwitchClient twitchClient;
-    private static Set<String> CHANNELS_TO_WATCH;
-    private static String TOKEN;
+    private static DbController dbController;
 
     public static void main(String[] args) throws SocketException, UnknownHostException, ParseException {
         Options options = new Options();
@@ -68,6 +75,12 @@ public class Main {
         options.addOption("carbon_port", true, "carbon port");
         options.addOption("client_id", true, "client id");
         options.addOption("client_secret", true, "client secret");
+        options.addOption("pg_host", true, "pg host");
+        options.addOption("pg_port", true, "pg port");
+        options.addOption("pd_db", true, "pg database");
+        options.addOption("pg_user", true, "pg user");
+        options.addOption("pg_password", true, "pg password");
+        options.addOption("http_port", true, "http port");
         options.addOption(Option.builder().argName("streamers").hasArg(true).longOpt("streamers").build());
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
@@ -77,10 +90,21 @@ public class Main {
         CARBON_PORT = Integer.parseInt(cmd.getOptionValue("carbon_port"));
         CLIENT_ID = cmd.getOptionValue("client_id");
         CLIENT_SECRET = cmd.getOptionValue("client_secret");
+        HTTP_PORT = Integer.parseInt(cmd.getOptionValue("http_port"));
         CHANNELS_TO_WATCH = Arrays.stream(cmd.getOptionValue("streamers").split(",")).collect(Collectors.toSet());
         if (CHANNELS_TO_WATCH.size() == 0) {
             throw new IllegalStateException("No channels to watch");
         }
+
+        PgPoolOptions pgOptions = new PgPoolOptions()
+                .setPort(Integer.parseInt(cmd.getOptionValue("pg_port")))
+                .setHost(cmd.getOptionValue("pg_host"))
+                .setDatabase(cmd.getOptionValue("pd_db"))
+                .setUser(cmd.getOptionValue("pg_user"))
+                .setPassword("pg_password")
+                .setMaxSize(5);
+
+        dbController = new DbController(PgClient.pool(pgOptions));
 
         vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(CHANNELS_TO_WATCH.size()));
         webClient = WebClient.create(vertx);
@@ -116,11 +140,17 @@ public class Main {
         final HttpServer httpServer = vertx.createHttpServer();
         final Router router = Router.router(vertx);
         router.route().handler(event -> {
-            final String query = event.request().query();
-            log.info("Query:{}", query);
+            final String path = event.request().path();
+            log.info("Path:{}", path);
             event.response().end("OK");
         });
-        httpServer.requestHandler(router).listen(80);
+        httpServer.requestHandler(router).listen(HTTP_PORT, event -> {
+            if (event.succeeded()) {
+                log.info("Http server started on port:{}", HTTP_PORT);
+            } else {
+                log.error("Cant start http server on port:{}", HTTP_PORT);
+            }
+        });
     }
 
     private static void initStoragesAndViewersCounter(Set<String> channelToWatch) {

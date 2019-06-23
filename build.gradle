@@ -30,6 +30,9 @@ dependencies {
 
     // CLI
     compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
+
+    // pg client
+    compile 'io.reactiverse:reactive-pg-client:0.11.2'
 }
 
 jar {
