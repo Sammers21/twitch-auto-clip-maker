@@ -64,7 +64,7 @@ public class Main {
     private static WebClient webClient;
     private static TwitchClient twitchClient;
     private static DbController dbController;
-    private static StreamsInfo streamsInfo;
+    private static Streams streams;
 
     public static void main(String[] args) throws SocketException, UnknownHostException, ParseException {
         Options options = new Options();
@@ -114,8 +114,9 @@ public class Main {
                 .withChatAccount(credential)
                 .build();
 
-        requestBearerToken();
-        streamsInfo = new StreamsInfo(vertx, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 30_000);
+        BEARER_TOKEN.set(dbController.token().blockingGet());
+        log.info("User token form DB:'{}'", BEARER_TOKEN.get());
+        streams = new Streams(vertx, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 30_000);
         initStoragesAndViewersCounter(CHANNELS_TO_WATCH);
 
         log.info("Token={}", TOKEN);
@@ -123,6 +124,7 @@ public class Main {
         log.info("CARBON_PORT={}", CARBON_PORT);
         log.info("CLIENT_ID={}", CLIENT_ID);
         log.info("CLIENT_SECRET={}", CLIENT_SECRET);
+        log.info("BEARER_TOKEN={}", BEARER_TOKEN);
         log.info("Channels={}", CHANNELS_TO_WATCH.stream().collect(Collectors.joining(",", "[", "]")));
 
         MetricRegistry metricRegistry = new MetricRegistry();
@@ -132,7 +134,8 @@ public class Main {
         CHANNELS_TO_WATCH.forEach(chat::joinChannel);
         reportMetrics(CHANNELS_TO_WATCH, vertx, metricRegistry, twitchClient);
         intiServer();
-        dbController.token().subscribe(ok -> log.info("User token form DB:'{}'", ok), err -> log.error("token fetch error", err));
+        String dota2ruhubClip = streams.createClipOnChannel("dota2ruhub").blockingGet();
+        log.info("Clip id:'{}'", dota2ruhubClip);
     }
 
     private static void intiServer() {

@@ -1,6 +1,7 @@
 package io.github.sammers21.twitch;
 
 import io.reactivex.Completable;
+import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.buffer.Buffer;
@@ -13,15 +14,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class StreamsInfo {
-    private static final Logger log = LoggerFactory.getLogger(StreamsInfo.class);
+public class Streams {
+    private static final Logger log = LoggerFactory.getLogger(Streams.class);
     private Map<String, JsonObject> streamersAndInfo = new ConcurrentHashMap<>();
     private final WebClient webClient;
     private final String clientId;
     private final String bearerToken;
     private final Set<String> channelsToWatch;
 
-    public StreamsInfo(Vertx vertx, WebClient webClient, String clientId, String bearerToken, Set<String> channelsToWatch, Integer updateEachMillis) {
+    public Streams(Vertx vertx, WebClient webClient, String clientId, String bearerToken, Set<String> channelsToWatch, Integer updateEachMillis) {
         this.webClient = webClient;
         this.clientId = clientId;
         this.bearerToken = bearerToken;
@@ -62,4 +63,22 @@ public class StreamsInfo {
     public synchronized Map<String, JsonObject> streamersAndInfo() {
         return streamersAndInfo;
     }
+
+    public Single<String> createClipOnChannel(String channelName) {
+        JsonObject entries = streamersAndInfo.get(channelName);
+        if (entries == null) {
+            return Single.error(new IllegalStateException("Streamer are not alive:" + channelName));
+        }
+        String userId = entries.getString("user_id");
+        HttpRequest<Buffer> clipReq = webClient.postAbs("https://api.twitch.tv/helix/clips");
+        clipReq.putHeader("Authorization", String.format("Bearer %s", bearerToken));
+        clipReq.addQueryParam("broadcaster_id", userId);
+
+        return clipReq.rxSend().map(resp -> {
+            JsonObject arg = resp.bodyAsJsonObject();
+            log.info("Clip endpoint response:\n{}", arg.encodePrettily());
+            return arg.getJsonArray("data").getJsonObject(0).getString("id");
+        });
+    }
+
 }
