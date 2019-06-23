@@ -5,6 +5,7 @@ import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +67,7 @@ public class ClipMakingDecisionEngine {
         Long min = grouped.keySet().stream().min(Long::compareTo).orElse(minDefault);
 
         //filling empty time windows
-        LongStream.range(min, max - 1).forEach(l -> {
+        LongStream.range(min, max + 1).forEach(l -> {
             grouped.computeIfAbsent(l, aLong -> new LinkedList<>());
         });
 
@@ -76,6 +77,8 @@ public class ClipMakingDecisionEngine {
         Long maxAfterRemove = grouped.keySet().stream().max(Long::compareTo).get();
         Long minAfterRemove = grouped.keySet().stream().min(Long::compareTo).get();
 
+        List<Map.Entry<Long, List<ChannelMessageEvent>>> sortedList = grouped.entrySet().stream().sorted(Comparator.comparingLong(Map.Entry::getKey)).collect(Collectors.toList());
+
         boolean minRateLimit = ((double) grouped.get(minAfterRemove).size() / 10d) > 0.5d;
         boolean rateIncrease = ((double) grouped.get(maxAfterRemove).size() / (double) grouped.get(minAfterRemove).size()) > 3d;
 
@@ -83,7 +86,7 @@ public class ClipMakingDecisionEngine {
         int decreases = 0;
 
         Map.Entry<Long, List<ChannelMessageEvent>> lastEntry = null;
-        for (Map.Entry<Long, List<ChannelMessageEvent>> entry : grouped.entrySet()) {
+        for (Map.Entry<Long, List<ChannelMessageEvent>> entry : sortedList) {
             if (lastEntry != null) {
                 if (entry.getValue().size() > lastEntry.getValue().size()) {
                     increases++;
