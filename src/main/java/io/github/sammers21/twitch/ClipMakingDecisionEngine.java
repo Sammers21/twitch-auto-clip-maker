@@ -55,7 +55,12 @@ public class ClipMakingDecisionEngine {
     private boolean makeDecision() {
         int intervalMinutes = 2;
         long intervalMillis = TimeUnit.MINUTES.toMillis(intervalMinutes);
-        List<ChannelMessageEvent> channelMessageEvents = lms.lastMessages(Math.toIntExact(intervalMillis));
+        List<ChannelMessageEvent> channelMessageEvents = lms.lastMessages(Math.toIntExact(intervalMillis))
+                .stream()
+                .filter(channelMessageEvent -> !channelMessageEvent.getMessage().startsWith("!"))
+                .filter(channelMessageEvent -> !channelMessageEvent.getMessage().contains("#drop"))
+                .filter(channelMessageEvent -> !channelMessageEvent.getMessage().contains("#дроп"))
+                .collect(Collectors.toList());
         // msg per 10 seconds
         Map<Long, List<ChannelMessageEvent>> grouped = channelMessageEvents.stream().collect(Collectors.groupingBy(channelMessageEvent -> channelMessageEvent.getFiredAt().toInstant().getEpochSecond() / 10));
 
@@ -100,9 +105,10 @@ public class ClipMakingDecisionEngine {
         }
 
         boolean increaseQuorum = increases > decreases;
-        boolean clipMakingLimit = (System.currentTimeMillis() - lastClipOnMillis.get()) > TimeUnit.MINUTES.toMillis(15);
+        long timeDif = System.currentTimeMillis() - lastClipOnMillis.get();
+        boolean clipMakingLimit = timeDif > TimeUnit.MINUTES.toMillis(3);
         boolean resultedDecision = increaseQuorum && minRateLimit && rateIncrease && clipMakingLimit;
-        log.info("Decision[{}] explained: increaseQuorum={}[inc={},dec={}], minRateLimit={}[{}], rateIncrease={}[{}], clipMakingLimit={}, groupSize={}",
+        log.info("Decision[{}] explained: increaseQuorum={}[inc={},dec={}], minRateLimit={}[{}], rateIncrease={}[{}], clipMakingLimit={}[sec={}], groupSize={}",
                 resultedDecision,
                 increaseQuorum,
                 increases,
@@ -112,6 +118,7 @@ public class ClipMakingDecisionEngine {
                 rateIncrease,
                 rateChangeRation,
                 clipMakingLimit,
+                TimeUnit.MILLISECONDS.toSeconds(timeDif),
                 sortedList.size()
         );
         return resultedDecision;
