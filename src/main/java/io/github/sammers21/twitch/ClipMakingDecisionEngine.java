@@ -63,8 +63,8 @@ public class ClipMakingDecisionEngine {
         long minDefault = now - (intervalMillis / 10_000);
 
         //removing first and last elems
-        Long max = grouped.keySet().stream().max(Long::compareTo).orElse(now);
-        Long min = grouped.keySet().stream().min(Long::compareTo).orElse(minDefault);
+        Long max = now;
+        Long min = minDefault;
 
         //filling empty time windows
         LongStream.range(min, max + 1).forEach(l -> {
@@ -102,7 +102,18 @@ public class ClipMakingDecisionEngine {
         boolean increaseQuorum = increases > decreases;
         boolean clipMakingLimit = (System.currentTimeMillis() - lastClipOnMillis.get()) > TimeUnit.MINUTES.toMillis(15);
         boolean resultedDecision = increaseQuorum && minRateLimit && rateIncrease && clipMakingLimit;
-        log.info("Decision[{}] explained: increaseQuorum={}[inc={},dec={}], minRateLimit={}[{}], rateIncrease={}[{}], clipMakingLimit={}", resultedDecision, increaseQuorum, increases, decreases, minRateLimit, String.format("%.02f", minRm), rateIncrease, rateChangeRation, clipMakingLimit);
+        log.info("Decision[{}] explained: increaseQuorum={}[inc={},dec={}], minRateLimit={}[{}], rateIncrease={}[{}], clipMakingLimit={}, groupSize={}",
+                resultedDecision,
+                increaseQuorum,
+                increases,
+                decreases,
+                minRateLimit,
+                String.format("%.02f", minRm),
+                rateIncrease,
+                rateChangeRation,
+                clipMakingLimit,
+                sortedList.size()
+        );
         return resultedDecision;
     }
 }
