@@ -11,13 +11,17 @@ import io.vertx.reactivex.ext.web.client.WebClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Streams {
     private static final Logger log = LoggerFactory.getLogger(Streams.class);
     private Map<String, JsonObject> streamersAndInfo = new ConcurrentHashMap<>();
+    private Vertx vertx;
     private final DbController dbController;
     private final WebClient webClient;
     private final String clientId;
@@ -25,6 +29,7 @@ public class Streams {
     private final Set<String> channelsToWatch;
 
     public Streams(Vertx vertx, DbController dbController, WebClient webClient, String clientId, String bearerToken, Set<String> channelsToWatch, Integer updateEachMillis) {
+        this.vertx = vertx;
         this.dbController = dbController;
         this.webClient = webClient;
         this.clientId = clientId;
@@ -89,6 +94,28 @@ public class Streams {
                 }, error -> {
                     log.error("Unable to insert a clip", error);
                 }));
+    }
+
+    public static final Pattern CLIP_PATTERN = Pattern.compile("https://([\\w-]+)\\.twitch\\.tv/(\\d+)-offset-(\\d+).*");
+
+    public Completable downloadClip(String clipId, String pathToSave) {
+        return webClient.getAbs("https://api.twitch.tv/helix/clips")
+                .putHeader("Client-ID", clientId)
+                .addQueryParam("id", clipId)
+                .rxSend()
+                .flatMap(resp -> {
+                    String url = resp.bodyAsJsonObject().getJsonArray("data").getJsonObject(0).getString("thumbnail_url");
+                    Matcher matcher = CLIP_PATTERN.matcher(url);
+                    matcher.find();
+                    String mediaSubDomain = matcher.group(1);
+                    String preOffset = matcher.group(2);
+                    String offset = matcher.group(3);
+                    String downloadUrl = String.format("https://%s.twitch.tv/%s-offset-%s.mp4", mediaSubDomain, preOffset, offset);
+                    log.info("Downloading: '{}'", downloadUrl);
+                    return webClient.getAbs(downloadUrl).rxSend();
+                })
+                .flatMapCompletable(resp -> vertx.fileSystem().rxWriteFile(pathToSave, resp.body()))
+                .doOnComplete(() -> log.info("Clip has been downloaded:'{}'", new File(pathToSave).getAbsolutePath()));
     }
 
     public synchronized boolean isOnline(String channelName) {
