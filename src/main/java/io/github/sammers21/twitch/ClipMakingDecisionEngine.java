@@ -106,7 +106,7 @@ public class ClipMakingDecisionEngine {
 
         boolean increaseQuorum = increases > decreases;
         long timeDif = System.currentTimeMillis() - lastClipOnMillis.get();
-        boolean clipMakingLimit = timeDif > TimeUnit.MINUTES.toMillis(3);
+        boolean clipMakingLimit = timeDif > TimeUnit.MINUTES.toMillis(1);
         boolean resultedDecision = increaseQuorum && minRateLimit && rateIncrease && clipMakingLimit;
         log.info("Decision[{}] explained: increaseQuorum={}[inc={},dec={}], minRateLimit={}[{}], rateIncrease={}[{}], clipMakingLimit={}[sec={}], groupSize={}",
                 resultedDecision,
