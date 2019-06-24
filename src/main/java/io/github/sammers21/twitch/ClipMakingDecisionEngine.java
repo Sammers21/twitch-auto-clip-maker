@@ -86,8 +86,8 @@ public class ClipMakingDecisionEngine {
 
         double minRm = (double) grouped.get(minAfterRemove).size() / 10d;
         boolean minRateLimit = minRm > 0.35d;
-        double rateChangeRation = (double) grouped.get(maxAfterRemove).size() / (double) grouped.get(minAfterRemove).size();
-        boolean rateIncrease = rateChangeRation > 3d;
+        double rateChangeRatio = (double) grouped.get(maxAfterRemove).size() / (double) grouped.get(minAfterRemove).size();
+        boolean rateIncrease = rateChangeRatio > 3d;
 
         int increases = 0;
         int decreases = 0;
@@ -116,7 +116,7 @@ public class ClipMakingDecisionEngine {
                 minRateLimit,
                 String.format("%.02f", minRm),
                 rateIncrease,
-                rateChangeRation,
+                String.format("%.02f", rateChangeRatio),
                 clipMakingLimit,
                 TimeUnit.MILLISECONDS.toSeconds(timeDif) % 60,
                 TimeUnit.MILLISECONDS.toMinutes(timeDif),
