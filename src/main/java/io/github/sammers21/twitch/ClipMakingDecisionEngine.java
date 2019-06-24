@@ -53,7 +53,8 @@ public class ClipMakingDecisionEngine {
     }
 
     private boolean makeDecision() {
-        long intervalMillis = TimeUnit.SECONDS.toMillis(110);
+        int intervalMinutes = 2;
+        long intervalMillis = TimeUnit.MINUTES.toMillis(intervalMinutes);
         List<ChannelMessageEvent> channelMessageEvents = lms.lastMessages(Math.toIntExact(intervalMillis));
         // msg per 10 seconds
         Map<Long, List<ChannelMessageEvent>> grouped = channelMessageEvents.stream().collect(Collectors.groupingBy(channelMessageEvent -> channelMessageEvent.getFiredAt().toInstant().getEpochSecond() / 10));
@@ -62,8 +63,8 @@ public class ClipMakingDecisionEngine {
         long minDefault = now - (intervalMillis / 10_000);
 
         //removing first and last elems
-        Long max = now;
-        Long min = minDefault;
+        Long max = grouped.keySet().stream().max(Long::compareTo).orElse(now);
+        Long min = grouped.keySet().stream().min(Long::compareTo).orElse(minDefault);
 
         //filling empty time windows
         LongStream.range(min, max + 1).forEach(l -> {
