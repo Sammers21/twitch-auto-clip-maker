@@ -31,7 +31,7 @@ public class ClipMakingDecisionEngine {
         log.info("Will make decisions in 2 mins");
         vertx.setTimer(TimeUnit.MINUTES.toMillis(2), timer -> {
             log.info("Start making decisions");
-            vertx.setPeriodic(10_000, event -> {
+            vertx.setPeriodic(3_000, event -> {
                 try {
                     if (streams.isOnline(streamerName) && makeDecision()) {
                         streams.createClipOnChannel(streamerName)
