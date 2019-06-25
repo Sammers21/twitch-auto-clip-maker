@@ -15,3 +15,6 @@ CREATE TABLE clip
     full_link      VARCHAR(500),
     time           timestamp without time zone default now()
 );
+
+ALTER TABLE clip
+    ADD COLUMN app_version VARCHAR(500);

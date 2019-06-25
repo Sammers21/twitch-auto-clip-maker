@@ -1,6 +1,19 @@
+import org.ajoberstar.grgit.Grgit
+
 plugins {
     id 'java'
     id 'application'
+    id "org.ajoberstar.grgit" version "1.7.2"
+}
+
+version = 1.0
+
+task versionTxt() {
+    doLast {
+        new File("$projectDir/src/main/resources/version.txt").text = """$version-${
+            Grgit.open(dir: "$projectDir").head().id
+        }"""
+    }
 }
 
 mainClassName = 'io.github.sammers21.twitch.Main'
@@ -14,7 +27,7 @@ dependencies {
 
     // twitch api 
     compile group: 'com.github.twitch4j', name: 'twitch4j', version: '1.0.0-alpha.13'
-    
+
     //vertx
     compile group: 'io.vertx', name: 'vertx-core', version: '3.7.1'
     compile group: 'io.vertx', name: 'vertx-web', version: '3.7.1'
@@ -42,3 +55,5 @@ jar {
     }
     archiveBaseName = "twitch-auto-clip"
 }
+
+tasks.build.dependsOn versionTxt

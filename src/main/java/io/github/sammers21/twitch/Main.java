@@ -27,6 +27,10 @@ import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -64,8 +68,13 @@ public class Main {
     private static TwitchClient twitchClient;
     private static DbController dbController;
     private static Streams streams;
+    public static String VERSION;
 
-    public static void main(String[] args) throws SocketException, UnknownHostException, ParseException {
+    public static void main(String[] args) throws IOException, ParseException {
+        InputStream resourceAsStream = Main.class.getResourceAsStream("/version.txt");
+        BufferedReader reader = new BufferedReader(new InputStreamReader(resourceAsStream));
+        VERSION = reader.readLine();
+
         Options options = new Options();
         options.addOption("token", true, "token");
         options.addOption("carbon_host", true, "carbon host");
@@ -119,6 +128,7 @@ public class Main {
         initStoragesAndViewersCounter(CHANNELS_TO_WATCH);
 
         log.info("Token={}", TOKEN);
+        log.info("VERSION={}", VERSION);
         log.info("CARBON_HOST={}", CARBON_HOST);
         log.info("CARBON_PORT={}", CARBON_PORT);
         log.info("CLIENT_ID={}", CLIENT_ID);

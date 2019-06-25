@@ -1,5 +1,6 @@
 package io.github.sammers21.twitch.db;
 
+import io.github.sammers21.twitch.Main;
 import io.reactiverse.reactivex.pgclient.PgPool;
 import io.reactiverse.reactivex.pgclient.PgRowSet;
 import io.reactiverse.reactivex.pgclient.Row;
@@ -42,8 +43,8 @@ public class DbController {
         String fullLink = String.format("https://clips.twitch.tv/%s", clipId);
         log.info("Insert new clip with clip_id={}, streamer_name={}, broadcaster_id={}", clipId, streamerName, broadcasterId);
         return pgClient.rxPreparedQuery(
-                "insert into clip(clip_id, streamer_name, broadcaster_id, full_link) values ($1, $2, $3, $4)",
-                Tuple.of(clipId, streamerName, broadcasterId,fullLink)
+                "insert into clip(clip_id, streamer_name, broadcaster_id, full_link, app_version) values ($1, $2, $3, $4, $5)",
+                Tuple.of(clipId, streamerName, broadcasterId, fullLink, Main.VERSION)
         ).ignoreElement();
     }
 }
