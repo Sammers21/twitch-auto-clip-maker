@@ -1,6 +1,7 @@
 package io.github.sammers21.twitch.db;
 
 import io.github.sammers21.twitch.Main;
+import io.reactiverse.reactivex.pgclient.PgIterator;
 import io.reactiverse.reactivex.pgclient.PgPool;
 import io.reactiverse.reactivex.pgclient.PgRowSet;
 import io.reactiverse.reactivex.pgclient.Row;
@@ -9,6 +10,9 @@ import io.reactivex.Completable;
 import io.reactivex.Single;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class DbController {
 
@@ -46,6 +50,20 @@ public class DbController {
                 "insert into clip(clip_id, streamer_name, broadcaster_id, full_link, app_version) values ($1, $2, $3, $4, $5)",
                 Tuple.of(clipId, streamerName, broadcasterId, fullLink, Main.VERSION)
         ).ignoreElement();
+    }
+
+    public Single<List<String>> selectClips(String streamerName) {
+        return pgClient.rxPreparedQuery(
+                "select clip_id from clip where streamer_name = $1",
+                Tuple.of(streamerName)
+        ).map(pgRowSet -> {
+            List<String> res = new ArrayList<>();
+            PgIterator iterator = pgRowSet.iterator();
+            while (iterator.hasNext()) {
+                res.add(iterator.next().getString("clip_id"));
+            }
+            return res;
+        });
     }
 }
 

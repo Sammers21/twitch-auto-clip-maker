@@ -4,3 +4,5 @@
 # Ignore Gradle build output directory
 build
 /src/main/resources/version.txt
+*.txt
+*.mp4
