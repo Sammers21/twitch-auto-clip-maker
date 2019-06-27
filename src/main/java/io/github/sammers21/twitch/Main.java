@@ -15,6 +15,7 @@ import io.reactiverse.reactivex.pgclient.PgClient;
 import io.reactivex.Single;
 import io.vertx.core.Future;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.buffer.Buffer;
 import io.vertx.reactivex.core.http.HttpServer;
@@ -23,7 +24,6 @@ import io.vertx.reactivex.ext.web.client.WebClient;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
@@ -40,6 +40,8 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -80,38 +82,28 @@ public class Main {
         VERSION = reader.readLine();
 
         Options options = new Options();
-        options.addOption("token", true, "token");
-        options.addOption("carbon_host", true, "carbon host");
-        options.addOption("carbon_port", true, "carbon port");
-        options.addOption("client_id", true, "client id");
-        options.addOption("client_secret", true, "client secret");
-        options.addOption("pg_host", true, "pg host");
-        options.addOption("pg_port", true, "pg port");
-        options.addOption("pd_db", true, "pg database");
-        options.addOption("pg_user", true, "pg user");
-        options.addOption("pg_password", true, "pg password");
-        options.addOption("http_port", true, "http port");
-        options.addOption(Option.builder().argName("streamers").hasArg(true).longOpt("streamers").build());
+        options.addOption("config", true, "json config file");
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
+        JsonObject cfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("config")))));
 
-        TOKEN = cmd.getOptionValue("token");
-        CARBON_HOST = cmd.getOptionValue("carbon_host");
-        CARBON_PORT = Integer.parseInt(cmd.getOptionValue("carbon_port"));
-        CLIENT_ID = cmd.getOptionValue("client_id");
-        CLIENT_SECRET = cmd.getOptionValue("client_secret");
-        HTTP_PORT = Integer.parseInt(cmd.getOptionValue("http_port"));
-        CHANNELS_TO_WATCH = Arrays.stream(cmd.getOptionValue("streamers").split(",")).collect(Collectors.toSet());
+        TOKEN = cfg.getString("token");
+        CARBON_HOST = cfg.getString("carbon_host");
+        CARBON_PORT = cfg.getInteger("carbon_port");
+        CLIENT_ID = cfg.getString("client_id");
+        CLIENT_SECRET = cfg.getString("client_secret");
+        HTTP_PORT = cfg.getInteger("http_port");
+        CHANNELS_TO_WATCH = Arrays.stream(cfg.getString("streamers").split(",")).collect(Collectors.toSet());
         if (CHANNELS_TO_WATCH.size() == 0) {
             throw new IllegalStateException("No channels to watch");
         }
 
         PgPoolOptions pgOptions = new PgPoolOptions()
-                .setPort(Integer.parseInt(cmd.getOptionValue("pg_port")))
-                .setHost(cmd.getOptionValue("pg_host"))
-                .setDatabase(cmd.getOptionValue("pd_db"))
-                .setUser(cmd.getOptionValue("pg_user"))
-                .setPassword(cmd.getOptionValue("pg_password"))
+                .setPort(cfg.getInteger("pg_port"))
+                .setHost(cfg.getString("pg_host"))
+                .setDatabase(cfg.getString("pd_db"))
+                .setUser(cfg.getString("pg_user"))
+                .setPassword(cfg.getString("pg_password"))
                 .setMaxSize(5);
 
         dbController = new DbController(PgClient.pool(pgOptions));
@@ -167,7 +159,7 @@ public class Main {
                         }).collect(Collectors.toList());
                         return Single.concat(downloads).toList();
                     })
-                    .flatMap(files -> concatVideos(files, String.format("%s-%s.mp4", chan, Instant.now().toString().replace(":","_"))))
+                    .flatMap(files -> concatVideos(files, String.format("%s-%s.mp4", chan, Instant.now().toString().replace(":", "_"))))
                     .subscribe(file -> {
                         log.info("Concat video:{}", file.getAbsolutePath());
                         event.response().end("OK");
