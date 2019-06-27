@@ -46,6 +46,10 @@ dependencies {
 
     // pg client
     compile 'io.reactiverse:reactive-pg-client:0.11.2'
+
+    // YouTube client
+    compile group: 'com.google.apis', name: 'google-api-services-youtube', version: 'v3-rev212-1.25.0'
+
 }
 
 jar {
