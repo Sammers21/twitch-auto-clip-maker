@@ -106,6 +106,7 @@ public class Main {
             throw new IllegalStateException("No channels to watch");
         }
 
+        MetricRegistry metricRegistry = new MetricRegistry();
         PgPoolOptions pgOptions = new PgPoolOptions()
                 .setPort(cfg.getInteger("pg_port"))
                 .setHost(cfg.getString("pg_host"))
@@ -128,7 +129,7 @@ public class Main {
 
         BEARER_TOKEN.set(dbController.token().blockingGet());
         log.info("User token form DB:'{}'", BEARER_TOKEN.get());
-        streams = new Streams(vertx, dbController, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 30_000);
+        streams = new Streams(vertx, dbController, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 30_000, metricRegistry);
         initStoragesAndViewersCounter(CHANNELS_TO_WATCH);
 
         log.info("Token={}", TOKEN);
@@ -140,8 +141,6 @@ public class Main {
         log.info("CLIENT_SECRET={}", CLIENT_SECRET);
         log.info("BEARER_TOKEN={}", BEARER_TOKEN);
         log.info("Channels={}", CHANNELS_TO_WATCH.stream().collect(Collectors.joining(",", "[", "]")));
-
-        MetricRegistry metricRegistry = new MetricRegistry();
         initReporters(metricRegistry);
 
         var chat = twitchClient.getChat();

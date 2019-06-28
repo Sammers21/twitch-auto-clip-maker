@@ -1,5 +1,6 @@
 package io.github.sammers21.twitch;
 
+import com.codahale.metrics.MetricRegistry;
 import io.github.sammers21.twitch.db.DbController;
 import io.reactivex.Completable;
 import io.reactivex.Single;
@@ -27,14 +28,18 @@ public class Streams {
     private final String clientId;
     private final String bearerToken;
     private final Set<String> channelsToWatch;
+    private final Integer updateEachMillis;
+    private final MetricRegistry metricRegistry;
 
-    public Streams(Vertx vertx, DbController dbController, WebClient webClient, String clientId, String bearerToken, Set<String> channelsToWatch, Integer updateEachMillis) {
+    public Streams(Vertx vertx, DbController dbController, WebClient webClient, String clientId, String bearerToken, Set<String> channelsToWatch, Integer updateEachMillis, MetricRegistry metricRegistry) {
         this.vertx = vertx;
         this.dbController = dbController;
         this.webClient = webClient;
         this.clientId = clientId;
         this.bearerToken = bearerToken;
         this.channelsToWatch = channelsToWatch;
+        this.updateEachMillis = updateEachMillis;
+        this.metricRegistry = metricRegistry;
         fillStreamersInfo().blockingAwait();
         vertx.setPeriodic(updateEachMillis, event -> fillStreamersInfo().subscribe());
     }
@@ -90,6 +95,7 @@ public class Streams {
             return arg.getJsonArray("data").getJsonObject(0).getString("id");
         }).doOnSuccess(ok -> dbController.insertClip(ok, channelName, userId)
                 .subscribe(() -> {
+                    metricRegistry.meter(String.format("channel.%s.createClip", channelName));
                     log.info("Clip is in the database");
                 }, error -> {
                     log.error("Unable to insert a clip", error);
