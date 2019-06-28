@@ -49,6 +49,7 @@ dependencies {
 
     // YouTube client
     compile group: 'com.google.apis', name: 'google-api-services-youtube', version: 'v3-rev212-1.25.0'
+    compile group: 'com.google.oauth-client', name: 'google-oauth-client', version: '1.30.1'
 
 }
 
