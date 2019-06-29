@@ -95,7 +95,7 @@ public class Streams {
             return arg.getJsonArray("data").getJsonObject(0).getString("id");
         }).doOnSuccess(ok -> dbController.insertClip(ok, channelName, userId)
                 .subscribe(() -> {
-                    metricRegistry.meter(String.format("channel.%s.createClip", channelName));
+                    metricRegistry.meter(String.format("channel.%s.createClip", channelName)).mark();
                     log.info("Clip is in the database");
                 }, error -> {
                     log.error("Unable to insert a clip", error);
