@@ -1,0 +1,40 @@
+import org.ajoberstar.grgit.Grgit
+
+plugins {
+    id 'java'
+    id 'application'
+    id "org.ajoberstar.grgit" version "1.7.2"
+}
+
+
+version = 1.0
+mainClassName = 'io.github.sammers21.tacm.cproducer.Main'
+
+dependencies {
+
+    compile project(":core")
+
+    // logging
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.0.9'
+
+    // CLI
+    compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
+}
+
+jar {
+    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    manifest {
+        attributes 'Main-Class': mainClassName
+    }
+    archiveBaseName = "twitch-auto-clip-producer"
+}
+
+task versionTxt() {
+    doLast {
+        new File("$projectDir/src/main/resources/version.txt").text = """$version-${
+            Grgit.open(dir: "$projectDir/..").head().id
+        }"""
+    }
+}
+
+tasks.jar.dependsOn versionTxt

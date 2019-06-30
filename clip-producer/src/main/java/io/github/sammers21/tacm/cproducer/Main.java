@@ -1,4 +1,4 @@
-package io.github.sammers21.twitch;
+package io.github.sammers21.tacm.cproducer;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricFilter;
@@ -9,12 +9,8 @@ import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
 import com.github.twitch4j.TwitchClient;
 import com.github.twitch4j.TwitchClientBuilder;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.common.collect.Lists;
-import io.github.sammers21.twitch.db.DbController;
+import io.github.sammers21.twac.core.Streams;
+import io.github.sammers21.twac.core.db.DbController;
 import io.reactiverse.pgclient.PgPoolOptions;
 import io.reactiverse.reactivex.pgclient.PgClient;
 import io.reactivex.Single;
@@ -73,7 +69,6 @@ public class Main {
     private static Set<String> CHANNELS_TO_WATCH;
     private static final Map<String, AtomicInteger> viewersByChan = new ConcurrentHashMap<>();
     private static final Map<String, LastMessagesStorage> storageByChan = new ConcurrentHashMap<>();
-    private final static List<String> scopes = Lists.newArrayList("https://www.googleapis.com/auth/youtube.upload");
     private static Vertx vertx;
     private static WebClient webClient;
     private static TwitchClient twitchClient;
@@ -88,12 +83,9 @@ public class Main {
 
         Options options = new Options();
         options.addOption("config", true, "json config file");
-        options.addOption("yconfig", true, "YouTube json config file");
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
         JsonObject cfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("config")))));
-//        String ycfgPath = cmd.getOptionValue("yconfig");
-//        initYoutube(ycfgPath);
 
         TOKEN = cfg.getString("token");
         CARBON_HOST = cfg.getString("carbon_host");
@@ -115,7 +107,7 @@ public class Main {
                 .setPassword(cfg.getString("pg_password"))
                 .setMaxSize(5);
 
-        dbController = new DbController(PgClient.pool(pgOptions));
+        dbController = new DbController(PgClient.pool(pgOptions), VERSION);
 
         vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(CHANNELS_TO_WATCH.size()));
         webClient = WebClient.create(vertx);
@@ -137,7 +129,6 @@ public class Main {
         log.info("CARBON_HOST={}", CARBON_HOST);
         log.info("CARBON_PORT={}", CARBON_PORT);
         log.info("CLIENT_ID={}", CLIENT_ID);
-//        log.info("YOUTUBE_CFG={}", ycfgPath);
         log.info("CLIENT_SECRET={}", CLIENT_SECRET);
         log.info("BEARER_TOKEN={}", BEARER_TOKEN);
         log.info("Channels={}", CHANNELS_TO_WATCH.stream().collect(Collectors.joining(",", "[", "]")));
@@ -148,23 +139,6 @@ public class Main {
         reportMetrics(CHANNELS_TO_WATCH, vertx, metricRegistry, twitchClient);
         intiServer();
     }
-
-    public static final JsonFactory JSON_FACTORY = new JacksonFactory();
-    private static final String CREDENTIALS_DIRECTORY = ".oauth-credentials";
-    public static final HttpTransport HTTP_TRANSPORT = new NetHttpTransport();
-
-//    private static void initYoutube(String ycfgPath) throws IOException {
-//        InputStreamReader yconfig = new InputStreamReader(new FileInputStream(new File(ycfgPath)));
-//        GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, yconfig);
-//        FileDataStoreFactory fileDataStoreFactory = new FileDataStoreFactory(new File(System.getProperty("user.home") + "/" + CREDENTIALS_DIRECTORY));
-//        DataStore<StoredCredential> datastore = fileDataStoreFactory.getDataStore("uploadvideo");
-//        GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
-//                HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, scopes).setCredentialDataStore(datastore)
-//                .build();
-//
-//        // Authorize.
-//        return new AuthorizationCodeInstalledApp(flow, localReceiver).authorize("user");
-//    }
 
     private static void intiServer() {
         final HttpServer httpServer = vertx.createHttpServer();

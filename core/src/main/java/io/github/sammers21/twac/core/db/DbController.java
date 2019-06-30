@@ -1,6 +1,5 @@
-package io.github.sammers21.twitch.db;
+package io.github.sammers21.twac.core.db;
 
-import io.github.sammers21.twitch.Main;
 import io.reactiverse.reactivex.pgclient.PgIterator;
 import io.reactiverse.reactivex.pgclient.PgPool;
 import io.reactiverse.reactivex.pgclient.PgRowSet;
@@ -18,9 +17,11 @@ public class DbController {
 
     private static final Logger log = LoggerFactory.getLogger(DbController.class);
     private final PgPool pgClient;
+    private final String version;
 
-    public DbController(PgPool pgClient) {
+    public DbController(PgPool pgClient, String version) {
         this.pgClient = pgClient;
+        this.version = version;
     }
 
     public Completable insertToken(String token) {
@@ -48,7 +49,7 @@ public class DbController {
         log.info("Insert new clip with clip_id={}, streamer_name={}, broadcaster_id={}", clipId, streamerName, broadcasterId);
         return pgClient.rxPreparedQuery(
                 "insert into clip(clip_id, streamer_name, broadcaster_id, full_link, app_version) values ($1, $2, $3, $4, $5)",
-                Tuple.of(clipId, streamerName, broadcasterId, fullLink, Main.VERSION)
+                Tuple.of(clipId, streamerName, broadcasterId, fullLink, version)
         ).ignoreElement();
     }
 

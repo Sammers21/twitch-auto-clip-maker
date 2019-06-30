@@ -1,4 +1,4 @@
-package io.github.sammers21.twitch;
+package io.github.sammers21.tacm.cproducer;
 
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 

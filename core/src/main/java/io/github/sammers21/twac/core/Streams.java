@@ -1,7 +1,7 @@
-package io.github.sammers21.twitch;
+package io.github.sammers21.twac.core;
 
 import com.codahale.metrics.MetricRegistry;
-import io.github.sammers21.twitch.db.DbController;
+import io.github.sammers21.twac.core.db.DbController;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
