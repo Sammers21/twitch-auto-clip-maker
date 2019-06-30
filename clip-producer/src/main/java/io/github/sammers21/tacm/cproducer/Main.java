@@ -10,6 +10,7 @@ import com.github.twitch4j.TwitchClient;
 import com.github.twitch4j.TwitchClientBuilder;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 import io.github.sammers21.twac.core.Streams;
+import io.github.sammers21.twac.core.Utils;
 import io.github.sammers21.twac.core.db.DbController;
 import io.vertx.core.Future;
 import io.vertx.core.VertxOptions;
@@ -26,10 +27,7 @@ import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -70,9 +68,7 @@ public class Main {
     public static String VERSION;
 
     public static void main(String[] args) throws IOException, ParseException {
-        InputStream resourceAsStream = Main.class.getResourceAsStream("/version.txt");
-        BufferedReader reader = new BufferedReader(new InputStreamReader(resourceAsStream));
-        VERSION = reader.readLine();
+        VERSION = Utils.version();
 
         Options options = new Options();
         options.addOption("config", true, "json config file");

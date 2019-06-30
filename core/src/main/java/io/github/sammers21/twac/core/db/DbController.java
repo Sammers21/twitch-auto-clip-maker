@@ -2,6 +2,7 @@ package io.github.sammers21.twac.core.db;
 
 import io.reactiverse.pgclient.PgPoolOptions;
 import io.reactiverse.reactivex.pgclient.PgClient;
+import io.reactiverse.reactivex.pgclient.PgConnection;
 import io.reactiverse.reactivex.pgclient.PgIterator;
 import io.reactiverse.reactivex.pgclient.PgPool;
 import io.reactiverse.reactivex.pgclient.PgRowSet;
@@ -32,6 +33,9 @@ public class DbController {
                 .setPassword(dbCfg.getString("password"))
                 .setMaxSize(5);
         this.pgClient = PgClient.pool(pgOptions);
+        PgConnection pgConnection = pgClient.rxGetConnection().blockingGet();
+        log.info("DB connection: OK");
+        pgConnection.close();
     }
 
     public Completable insertToken(String token) {
