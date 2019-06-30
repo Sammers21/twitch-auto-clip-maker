@@ -71,11 +71,11 @@ public class Main {
         VERSION = Utils.version();
 
         Options options = new Options();
-        options.addOption("config", true, "json config file");
+        options.addOption("cfg", true, "json config file");
         options.addOption("db", true, "db json config file");
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
-        JsonObject cfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("config")))));
+        JsonObject cfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("cfg")))));
         JsonObject dbCfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("db")))));
 
         TOKEN = cfg.getString("token");
@@ -105,6 +105,8 @@ public class Main {
         BEARER_TOKEN.set(dbController.token().blockingGet());
         log.info("User token form DB:'{}'", BEARER_TOKEN.get());
         streams = new Streams(vertx, dbController, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 30_000, metricRegistry);
+        streams.enableStreamsInfo();
+
         initStoragesAndViewersCounter(CHANNELS_TO_WATCH);
 
         log.info("Token={}", TOKEN);
@@ -130,13 +132,6 @@ public class Main {
             final String path = event.request().path();
             log.info("Path:{}", path);
             event.response().end("OK");
-        });
-        router.route("/cc").handler(event -> {
-            String chan = event.request().getParam("chan");
-            streams.mkVideoOnChan(chan).subscribe(file -> {
-                log.info("Concat video:{}", file.getAbsolutePath());
-                event.response().end("OK");
-            });
         });
         httpServer.requestHandler(router).listen(HTTP_PORT, event -> {
             if (event.succeeded()) {
