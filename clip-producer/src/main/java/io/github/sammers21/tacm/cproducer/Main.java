@@ -11,12 +11,10 @@ import com.github.twitch4j.TwitchClientBuilder;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 import io.github.sammers21.twac.core.Streams;
 import io.github.sammers21.twac.core.db.DbController;
-import io.reactivex.Single;
 import io.vertx.core.Future;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.Vertx;
-import io.vertx.reactivex.core.buffer.Buffer;
 import io.vertx.reactivex.core.http.HttpServer;
 import io.vertx.reactivex.ext.web.Router;
 import io.vertx.reactivex.ext.web.client.WebClient;
@@ -29,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -38,10 +35,8 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -142,19 +137,10 @@ public class Main {
         });
         router.route("/cc").handler(event -> {
             String chan = event.request().getParam("chan");
-            dbController.selectClips(chan)
-                    .flatMap(clipIds -> {
-                        List<Single<File>> downloads = clipIds.stream().limit(2).map(clipId -> {
-                            String fileName = clipId + ".mp4";
-                            return streams.downloadClip(clipId, fileName).andThen(Single.defer(() -> Single.just(new File(fileName))));
-                        }).collect(Collectors.toList());
-                        return Single.concat(downloads).toList();
-                    })
-                    .flatMap(files -> concatVideos(files, String.format("%s-%s.mp4", chan, Instant.now().toString().replace(":", "_"))))
-                    .subscribe(file -> {
-                        log.info("Concat video:{}", file.getAbsolutePath());
-                        event.response().end("OK");
-                    });
+            streams.mkVideoOnChan(chan).subscribe(file -> {
+                log.info("Concat video:{}", file.getAbsolutePath());
+                event.response().end("OK");
+            });
         });
         httpServer.requestHandler(router).listen(HTTP_PORT, event -> {
             if (event.succeeded()) {
@@ -163,41 +149,6 @@ public class Main {
                 log.error("Cant start http server on port:{}", HTTP_PORT);
             }
         });
-    }
-
-    private static Single<File> concatVideos(List<File> mp4Files, String resultedName) {
-        String txtBuildFileText = mp4Files.stream().map(file -> String.format("file '%s'", file.getAbsolutePath())).collect(Collectors.joining("\n"));
-        String txtBuildFile = String.format("%s.txt", resultedName.replace(".mp4", ""));
-        String cmd = String.format("ffmpeg -f concat -safe 0 -i %s -c copy %s", txtBuildFile, resultedName);
-        return vertx.fileSystem()
-                .rxWriteFile(
-                        txtBuildFile,
-                        Buffer.buffer(txtBuildFileText.getBytes(StandardCharsets.UTF_8))
-                ).andThen(
-                        vertx.rxExecuteBlocking((io.vertx.reactivex.core.Future<File> event) -> {
-                            Runtime run = Runtime.getRuntime();
-                            Process pr = null;
-                            try {
-                                pr = run.exec(cmd);
-                                pr.waitFor();
-                                BufferedReader buf = new BufferedReader(new InputStreamReader(pr.getInputStream()));
-                                BufferedReader buf2 = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
-                                StringBuilder res = new StringBuilder();
-                                String line = "";
-                                while ((line = buf.readLine()) != null) {
-                                    res.append(line).append("\n");
-                                }
-                                while ((line = buf2.readLine()) != null) {
-                                    res.append(line).append("\n");
-                                }
-                                log.info("CMD:\n$ {}\n{}", cmd, res.toString());
-                                event.complete(new File(resultedName));
-                            } catch (IOException | InterruptedException e) {
-                                e.printStackTrace();
-                                event.fail(e);
-                            }
-                        }).toSingle()
-                );
     }
 
     private static void initStoragesAndViewersCounter(Set<String> channelToWatch) {
