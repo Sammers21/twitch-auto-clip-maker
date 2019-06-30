@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class DbController {
 
@@ -67,9 +68,14 @@ public class DbController {
         ).ignoreElement();
     }
 
-    public Single<List<String>> selectClips(String streamerName) {
+    public Single<List<String>> selectNonIncludedClips(String streamerName) {
         return pgClient.rxPreparedQuery(
-                "select clip_id from clip where streamer_name = $1",
+                "SELECT clip.clip_id\n" +
+                        "from clip\n" +
+                        "         left join clip_released cr on clip.clip_id = cr.clip_id\n" +
+                        "where streamer_name = $1\n" +
+                        "  and included_in_release is null\n" +
+                        "ORDER BY time DESC",
                 Tuple.of(streamerName)
         ).map(pgRowSet -> {
             List<String> res = new ArrayList<>();
@@ -78,7 +84,23 @@ public class DbController {
                 res.add(iterator.next().getString("clip_id"));
             }
             return res;
-        });
+        }).doAfterSuccess(strings -> log.info("selectNonIncludedClips for chan: {} size={}", streamerName, strings.size()));
+    }
+
+    public Completable bundleOfClips(List<String> clipIds, String youtubeVideoId) {
+        String youtubeLink = String.format("https://www.youtube.com/watch?v=%s", youtubeVideoId);
+        List<Tuple> batch = clipIds.stream().map(clipId -> Tuple.of(clipId, youtubeVideoId)).collect(Collectors.toList());
+        return pgClient.rxPreparedBatch("INSERT INTO clip_released(clip_id, included_in_release) values ($1, $2)", batch)
+                .flatMap(pgRowSet ->
+                        pgClient.rxPreparedQuery(
+                                "INSERT into release(youtube_video_id, youtube_link, producer_version) values ($1, $2, $3)",
+                                Tuple.of(youtubeVideoId, youtubeLink, version)
+                        )
+                )
+                .doAfterSuccess(pgRowSet ->
+                        log.info("created bundleOfClips youtubeId:{}. Clips:{}", youtubeVideoId, clipIds.stream().collect(Collectors.joining(", ", "[", "]")))
+                )
+                .ignoreElement();
     }
 }
 

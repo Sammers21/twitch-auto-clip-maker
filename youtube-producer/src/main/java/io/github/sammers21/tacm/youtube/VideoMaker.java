@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -56,30 +57,35 @@ public class VideoMaker {
                 .doOnComplete(() -> log.info("Clip has been downloaded:'{}'", new File(pathToSave).getAbsolutePath()));
     }
 
-    public Single<File> mkVideoOnChan(String chan) {
-        return dbController.selectClips(chan)
+    public Single<File> mkVideoOnChan(ProductionPolicy productionPolicy) {
+        String chan = productionPolicy.Policy_for_streamer();
+        Integer limit = productionPolicy.Clips_per_release();
+        return dbController.selectNonIncludedClips(chan)
                 .flatMap(clipIds -> {
-                    List<Single<File>> downloads = clipIds.stream().limit(2).map(clipId -> {
+                    List<Single<File>> downloads = clipIds.stream().limit(limit).map(clipId -> {
                         String fileName = clipId + ".mp4";
                         return this.downloadClip(clipId, fileName).andThen(Single.defer(() -> Single.just(new File(fileName))));
                     }).collect(Collectors.toList());
                     return Single.concat(downloads).toList();
                 })
-                .flatMap(files -> concatVideos(files, String.format("%s-%s.mp4", chan, Instant.now().toString().replace(":", "_"))));
+                .doAfterSuccess(files -> files.forEach(File::deleteOnExit))
+                .flatMap(files -> concatVideos(files, String.format("%s-%s.mp4", chan, Instant.now().toString().replace(":", "_"))))
+                .doAfterSuccess(File::deleteOnExit);
     }
 
     private Single<File> concatVideos(List<File> mp4Files, String resultedName) {
         String txtBuildFileText = mp4Files.stream().map(file -> String.format("file '%s'", file.getAbsolutePath())).collect(Collectors.joining("\n"));
-        String txtBuildFile = String.format("%s.txt", resultedName.replace(".mp4", ""));
-        String cmd = String.format("ffmpeg -f concat -safe 0 -i %s -c copy %s", txtBuildFile, resultedName);
+        String txtBuildFilePath = String.format("%s.txt", resultedName.replace(".mp4", ""));
+        String cmd = String.format("ffmpeg -f concat -safe 0 -i %s -c copy %s", txtBuildFilePath, resultedName);
+        File txtBuildFile = new File(txtBuildFilePath);
         return vertx.fileSystem()
                 .rxWriteFile(
-                        txtBuildFile,
+                        txtBuildFilePath,
                         Buffer.buffer(txtBuildFileText.getBytes(StandardCharsets.UTF_8))
                 ).andThen(
                         vertx.rxExecuteBlocking((io.vertx.reactivex.core.Future<File> event) -> {
                             Runtime run = Runtime.getRuntime();
-                            Process pr = null;
+                            Process pr;
                             try {
                                 pr = run.exec(cmd);
                                 pr.waitFor();
@@ -100,6 +106,14 @@ public class VideoMaker {
                                 event.fail(e);
                             }
                         }).toSingle()
-                );
+                ).doAfterSuccess(res -> {
+                    ArrayList<File> filesToRemove = new ArrayList<>(mp4Files);
+                    filesToRemove.add(txtBuildFile);
+                    filesToRemove.forEach(file ->
+                            vertx.fileSystem()
+                                    .rxDelete(file.getAbsolutePath())
+                                    .subscribe(() -> log.info("File '{}' has been deleted", file.getAbsolutePath()))
+                    );
+                });
     }
 }

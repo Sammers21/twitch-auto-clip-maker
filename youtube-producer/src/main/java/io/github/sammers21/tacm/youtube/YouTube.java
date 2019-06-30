@@ -86,7 +86,7 @@ public class YouTube {
         return new AuthorizationCodeInstalledApp(flow, localReceiver).authorize("user");
     }
 
-    public void uploadVideo(File videoFile) throws IOException {
+    public String uploadVideo(File videoFile) throws IOException {
         long fLength = videoFile.length();
         // Add extra information to the video before uploading.
         Video videoObjectDefiningMetadata = new Video();
@@ -166,5 +166,6 @@ public class YouTube {
         log.info("  - Tags: " + returnedVideo.getSnippet().getTags());
         log.info("  - Privacy Status: " + returnedVideo.getStatus().getPrivacyStatus());
         log.info("  - Video Count: " + returnedVideo.getStatistics().getViewCount());
+        return returnedVideo.getId();
     }
 }

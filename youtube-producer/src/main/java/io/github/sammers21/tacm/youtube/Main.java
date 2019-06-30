@@ -2,6 +2,7 @@ package io.github.sammers21.tacm.youtube;
 
 import io.github.sammers21.twac.core.Utils;
 import io.github.sammers21.twac.core.db.DbController;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.ext.web.client.WebClient;
@@ -13,10 +14,11 @@ import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
 
@@ -30,7 +32,10 @@ public class Main {
     private static VideoMaker vMaker;
 
     public static void main(String[] args) throws IOException, ParseException {
-        vertx = Vertx.vertx();
+        vertx = Vertx.vertx(new VertxOptions()
+                .setBlockedThreadCheckInterval(1)
+                .setBlockedThreadCheckIntervalUnit(TimeUnit.HOURS)
+        );
         webClient = WebClient.create(vertx);
         VERSION = Utils.version();
         log.info("VERSION={}", VERSION);
@@ -47,7 +52,7 @@ public class Main {
         youTube = new YouTube(youtubeCfgPath);
         dbController = new DbController(dbCfg, VERSION);
         vMaker = new VideoMaker(dbController, vertx, webClient, cfg.getString("client_id"));
-        File dota2ruhub = vMaker.mkVideoOnChan("dota2ruhub").blockingGet();
-        youTube.uploadVideo(dota2ruhub);
+        Producer producer = new Producer(vertx, Set.of(new ProductionPolicy("dota2ruhub", 20)), youTube, vMaker, dbController);
+        producer.runProduction();
     }
 }
