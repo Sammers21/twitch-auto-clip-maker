@@ -24,16 +24,20 @@ public class Main {
     private static String VERSION;
 
     private static DbController dbController;
+    private static YouTube youTube;
 
     public static void main(String[] args) throws IOException, ParseException {
         VERSION = Utils.version();
         log.info("VERSION={}", VERSION);
         Options options = new Options();
         options.addOption("db", true, "db json config file");
+        options.addOption("yt", true, "YouTube json config file");
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
         JsonObject dbCfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("db")))));
-        dbController = new DbController(dbCfg, VERSION);
+        String youtubeCfgPath = cmd.getOptionValue("db");
 
+        youTube = new YouTube(youtubeCfgPath);
+        dbController = new DbController(dbCfg, VERSION);
     }
 }
