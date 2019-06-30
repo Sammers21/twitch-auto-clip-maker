@@ -11,8 +11,6 @@ import com.github.twitch4j.TwitchClientBuilder;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 import io.github.sammers21.twac.core.Streams;
 import io.github.sammers21.twac.core.db.DbController;
-import io.reactiverse.pgclient.PgPoolOptions;
-import io.reactiverse.reactivex.pgclient.PgClient;
 import io.reactivex.Single;
 import io.vertx.core.Future;
 import io.vertx.core.VertxOptions;
@@ -83,9 +81,11 @@ public class Main {
 
         Options options = new Options();
         options.addOption("config", true, "json config file");
+        options.addOption("db", true, "db json config file");
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
         JsonObject cfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("config")))));
+        JsonObject dbCfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("db")))));
 
         TOKEN = cfg.getString("token");
         CARBON_HOST = cfg.getString("carbon_host");
@@ -99,15 +99,7 @@ public class Main {
         }
 
         MetricRegistry metricRegistry = new MetricRegistry();
-        PgPoolOptions pgOptions = new PgPoolOptions()
-                .setPort(cfg.getInteger("pg_port"))
-                .setHost(cfg.getString("pg_host"))
-                .setDatabase(cfg.getString("pd_db"))
-                .setUser(cfg.getString("pg_user"))
-                .setPassword(cfg.getString("pg_password"))
-                .setMaxSize(5);
-
-        dbController = new DbController(PgClient.pool(pgOptions), VERSION);
+        dbController = new DbController(dbCfg, VERSION);
 
         vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(CHANNELS_TO_WATCH.size()));
         webClient = WebClient.create(vertx);

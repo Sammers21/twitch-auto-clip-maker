@@ -1,5 +1,7 @@
 package io.github.sammers21.twac.core.db;
 
+import io.reactiverse.pgclient.PgPoolOptions;
+import io.reactiverse.reactivex.pgclient.PgClient;
 import io.reactiverse.reactivex.pgclient.PgIterator;
 import io.reactiverse.reactivex.pgclient.PgPool;
 import io.reactiverse.reactivex.pgclient.PgRowSet;
@@ -7,6 +9,7 @@ import io.reactiverse.reactivex.pgclient.Row;
 import io.reactiverse.reactivex.pgclient.Tuple;
 import io.reactivex.Completable;
 import io.reactivex.Single;
+import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,9 +22,16 @@ public class DbController {
     private final PgPool pgClient;
     private final String version;
 
-    public DbController(PgPool pgClient, String version) {
-        this.pgClient = pgClient;
+    public DbController(JsonObject dbCfg, String version) {
         this.version = version;
+        PgPoolOptions pgOptions = new PgPoolOptions()
+                .setPort(dbCfg.getInteger("port"))
+                .setHost(dbCfg.getString("host"))
+                .setDatabase(dbCfg.getString("db"))
+                .setUser(dbCfg.getString("user"))
+                .setPassword(dbCfg.getString("password"))
+                .setMaxSize(5);
+        this.pgClient = PgClient.pool(pgOptions);
     }
 
     public Completable insertToken(String token) {
