@@ -106,7 +106,7 @@ public class DbController {
 
     public Maybe<LocalDateTime> lastReleaseTimeOnChan(String youtubeChanName) {
         return pgClient.rxPreparedQuery(
-                "select time from release where youtube_video_id = $1 order by time desc limit 1",
+                "select time from release where youtube_chan = $1 order by time desc limit 1",
                 Tuple.of(youtubeChanName)
         ).flatMapMaybe(pgRowSet -> {
             PgIterator iterator = pgRowSet.iterator();
