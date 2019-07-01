@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -47,24 +48,31 @@ public class Producer {
             dbController.lastReleaseTimeOnChan(productionPolicy.Release_on_youtube_chan())
                     .doOnComplete(() -> {
                         log.info("Not found last release for {}", productionPolicy.Release_on_youtube_chan());
-                        attemptToMakeBundle(productionPolicy);
-                        vertx.setPeriodic(RELEASES_DELAY_MILLIS, event -> attemptToMakeBundle(productionPolicy));
+                        runReleasesFromNow(productionPolicy);
                     })
                     .doOnSuccess(localDateTime -> {
                         long lastRelease = localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli();
                         long now = Instant.now(Clock.systemUTC()).toEpochMilli();
                         if (now > RELEASES_DELAY_MILLIS + lastRelease) {
-                            attemptToMakeBundle(productionPolicy);
-                            vertx.setPeriodic(RELEASES_DELAY_MILLIS, event -> attemptToMakeBundle(productionPolicy));
+                            log.info("Will release instantly");
+                            runReleasesFromNow(productionPolicy);
                         } else {
-                            vertx.setTimer(RELEASES_DELAY_MILLIS + lastRelease - now, event -> {
-                                attemptToMakeBundle(productionPolicy);
-                                vertx.setPeriodic(RELEASES_DELAY_MILLIS, ev -> attemptToMakeBundle(productionPolicy));
-                            });
+                            long nextRelease = RELEASES_DELAY_MILLIS + lastRelease - now;
+                            log.info("Will release instantly in {} hours {} minutes", TimeUnit.MILLISECONDS.toHours(nextRelease), TimeUnit.MILLISECONDS.toMinutes(nextRelease) % 60);
+                            vertx.setTimer(nextRelease, event -> runReleasesFromNow(productionPolicy));
                         }
                     })
                     .doOnError(throwable -> log.error("error with policy for {}", productionPolicy.Release_on_youtube_chan(), throwable))
                     .subscribe();
+        });
+    }
+
+    private void runReleasesFromNow(ProductionPolicy productionPolicy) {
+        log.info("Time for an instant release on {}", productionPolicy.Release_on_youtube_chan());
+        attemptToMakeBundle(productionPolicy);
+        vertx.setPeriodic(RELEASES_DELAY_MILLIS, event -> {
+            log.info("Regular release on {}", productionPolicy.Release_on_youtube_chan());
+            attemptToMakeBundle(productionPolicy);
         });
     }
 
