@@ -54,7 +54,7 @@ public class Main {
         youTube = new YouTube(host, youtubeCfgPath);
         dbController = new DbController(dbCfg, VERSION);
         vMaker = new VideoMaker(dbController, vertx, webClient, cfg.getString("client_id"));
-        Producer producer = new Producer(vertx, Set.of(new ProductionPolicy("dota2ruhub", 20)), youTube, vMaker, dbController);
+        Producer producer = new Producer(vertx, Set.of(new ProductionPolicy("dota2ruhub", 20, "dota2owl")), youTube, vMaker, dbController);
         producer.runProduction();
     }
 }

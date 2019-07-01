@@ -8,9 +8,12 @@ public class ProductionPolicy {
 
     private Integer clips_per_release;
 
-    public ProductionPolicy(String policy_for_streamer, Integer clips_per_release) {
+    private String release_on_youtube_chan;
+
+    public ProductionPolicy(String policy_for_streamer, Integer clips_per_release, String release_on_youtube_chan) {
         this.policy_for_streamer = policy_for_streamer;
         this.clips_per_release = clips_per_release;
+        this.release_on_youtube_chan = release_on_youtube_chan;
     }
 
     public String Policy_for_streamer() {
@@ -36,6 +39,14 @@ public class ProductionPolicy {
         ProductionPolicy that = (ProductionPolicy) o;
         return Objects.equals(policy_for_streamer, that.policy_for_streamer) &&
                 Objects.equals(clips_per_release, that.clips_per_release);
+    }
+
+    public String Release_on_youtube_chan() {
+        return release_on_youtube_chan;
+    }
+
+    public void setRelease_on_youtube_chan(String release_on_youtube_chan) {
+        this.release_on_youtube_chan = release_on_youtube_chan;
     }
 
     @Override

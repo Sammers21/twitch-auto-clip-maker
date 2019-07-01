@@ -9,11 +9,13 @@ import io.reactiverse.reactivex.pgclient.PgRowSet;
 import io.reactiverse.reactivex.pgclient.Row;
 import io.reactiverse.reactivex.pgclient.Tuple;
 import io.reactivex.Completable;
+import io.reactivex.Maybe;
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -87,19 +89,33 @@ public class DbController {
         }).doAfterSuccess(strings -> log.info("selectNonIncludedClips for chan: {} size={}", streamerName, strings.size()));
     }
 
-    public Completable bundleOfClips(List<String> clipIds, String youtubeVideoId) {
+    public Completable bundleOfClips(List<String> clipIds, String youtubeVideoId, String youtubeChan) {
         String youtubeLink = String.format("https://www.youtube.com/watch?v=%s", youtubeVideoId);
 
         List<Tuple> batch = clipIds.stream().map(clipId -> Tuple.of(clipId, youtubeVideoId)).collect(Collectors.toList());
         return pgClient.rxPreparedQuery(
-                "INSERT into release(youtube_video_id, youtube_link, producer_version) values ($1, $2, $3)",
-                Tuple.of(youtubeVideoId, youtubeLink, version)
+                "INSERT into release(youtube_video_id, youtube_link, producer_version, youtube_chan) values ($1, $2, $3, $4)",
+                Tuple.of(youtubeVideoId, youtubeLink, version, youtubeChan)
         )
                 .flatMap(pgRowSet -> pgClient.rxPreparedBatch("INSERT INTO clip_released(clip_id, included_in_release) values ($1, $2)", batch))
                 .doAfterSuccess(pgRowSet ->
                         log.info("created bundleOfClips youtubeId='{}'. Clips={}", youtubeVideoId, clipIds.stream().collect(Collectors.joining(", ", "[", "]")))
                 )
                 .ignoreElement();
+    }
+
+    public Maybe<LocalDateTime> lastReleaseTimeOnChan(String youtubeChanName) {
+        return pgClient.rxPreparedQuery(
+                "select time from release where youtube_video_id = $1 order by time desc limit 1",
+                Tuple.of(youtubeChanName)
+        ).flatMapMaybe(pgRowSet -> {
+            PgIterator iterator = pgRowSet.iterator();
+            if (iterator.hasNext()) {
+                return Maybe.just(iterator.next().getLocalDateTime("time"));
+            } else {
+                return Maybe.empty();
+            }
+        });
     }
 }
 

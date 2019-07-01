@@ -7,6 +7,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -22,6 +25,15 @@ public class Producer {
     private final VideoMaker videoMaker;
     private final DbController dbController;
 
+    private static final Long VIDEOS_IN_A_DAY;
+    private static final Long RELEASES_DELAY_MILLIS;
+
+    static {
+        VIDEOS_IN_A_DAY = 5L;
+        long millisInADay = 24 * 3600 * 1000L;
+        RELEASES_DELAY_MILLIS = millisInADay / VIDEOS_IN_A_DAY;
+    }
+
     public Producer(Vertx vertx, Set<ProductionPolicy> policies, YouTube youTube, VideoMaker videoMaker, DbController dbController) {
         this.vertx = vertx;
         this.policies = policies;
@@ -31,10 +43,33 @@ public class Producer {
     }
 
     public void runProduction() {
-        policies.forEach(productionPolicy -> vertx.setPeriodic(24 * 3600 * 1000 / 6, event -> attemptToMakeBundle(productionPolicy)));
+        policies.forEach(productionPolicy -> {
+            dbController.lastReleaseTimeOnChan(productionPolicy.Release_on_youtube_chan())
+                    .doOnComplete(() -> {
+                        log.info("Not found last release for {}", productionPolicy.Release_on_youtube_chan());
+                        attemptToMakeBundle(productionPolicy);
+                        vertx.setPeriodic(RELEASES_DELAY_MILLIS, event -> attemptToMakeBundle(productionPolicy));
+                    })
+                    .doOnSuccess(localDateTime -> {
+                        long lastRelease = localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli();
+                        long now = Instant.now(Clock.systemUTC()).toEpochMilli();
+                        if (now > RELEASES_DELAY_MILLIS + lastRelease) {
+                            attemptToMakeBundle(productionPolicy);
+                            vertx.setPeriodic(RELEASES_DELAY_MILLIS, event -> attemptToMakeBundle(productionPolicy));
+                        } else {
+                            vertx.setTimer(RELEASES_DELAY_MILLIS + lastRelease - now, event -> {
+                                attemptToMakeBundle(productionPolicy);
+                                vertx.setPeriodic(RELEASES_DELAY_MILLIS, ev -> attemptToMakeBundle(productionPolicy));
+                            });
+                        }
+                    })
+                    .doOnError(throwable -> log.error("error with policy for {}", productionPolicy.Release_on_youtube_chan(), throwable))
+                    .subscribe();
+        });
     }
 
     public void attemptToMakeBundle(ProductionPolicy productionPolicy) {
+        log.info("Releasing on '{}'", productionPolicy.Release_on_youtube_chan());
         AtomicReference<List<String>> selectedIds = new AtomicReference<>();
         dbController.selectNonIncludedClips(productionPolicy.Policy_for_streamer())
                 .map(strings -> {
@@ -65,7 +100,7 @@ public class Producer {
                                         }).toSingle()
                                 )
                 )
-                .flatMapCompletable(videoId -> dbController.bundleOfClips(selectedIds.get(), videoId))
+                .flatMapCompletable(videoId -> dbController.bundleOfClips(selectedIds.get(), videoId, productionPolicy.Release_on_youtube_chan()))
                 .subscribe(
                         () -> log.info("Bundle are made and available on YouTube"),
                         err -> log.error("Bundle are not made", err)
