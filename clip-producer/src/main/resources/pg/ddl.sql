@@ -32,3 +32,5 @@ CREATE TABLE clip_released
     clip_id             VARCHAR(500) PRIMARY KEY REFERENCES clip (clip_id),
     included_in_release VARCHAR(500) NOT NULL REFERENCES release (youtube_video_id)
 );
+
+insert into clip_released(clip_id, included_in_release) VALUES ('')

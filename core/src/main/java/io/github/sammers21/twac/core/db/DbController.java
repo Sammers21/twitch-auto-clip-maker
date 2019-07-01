@@ -89,16 +89,15 @@ public class DbController {
 
     public Completable bundleOfClips(List<String> clipIds, String youtubeVideoId) {
         String youtubeLink = String.format("https://www.youtube.com/watch?v=%s", youtubeVideoId);
+
         List<Tuple> batch = clipIds.stream().map(clipId -> Tuple.of(clipId, youtubeVideoId)).collect(Collectors.toList());
-        return pgClient.rxPreparedBatch("INSERT INTO clip_released(clip_id, included_in_release) values ($1, $2)", batch)
-                .flatMap(pgRowSet ->
-                        pgClient.rxPreparedQuery(
-                                "INSERT into release(youtube_video_id, youtube_link, producer_version) values ($1, $2, $3)",
-                                Tuple.of(youtubeVideoId, youtubeLink, version)
-                        )
-                )
+        return pgClient.rxPreparedQuery(
+                "INSERT into release(youtube_video_id, youtube_link, producer_version) values ($1, $2, $3)",
+                Tuple.of(youtubeVideoId, youtubeLink, version)
+        )
+                .flatMap(pgRowSet -> pgClient.rxPreparedBatch("INSERT INTO clip_released(clip_id, included_in_release) values ($1, $2)", batch))
                 .doAfterSuccess(pgRowSet ->
-                        log.info("created bundleOfClips youtubeId:{}. Clips:{}", youtubeVideoId, clipIds.stream().collect(Collectors.joining(", ", "[", "]")))
+                        log.info("created bundleOfClips youtubeId='{}'. Clips={}", youtubeVideoId, clipIds.stream().collect(Collectors.joining(", ", "[", "]")))
                 )
                 .ignoreElement();
     }

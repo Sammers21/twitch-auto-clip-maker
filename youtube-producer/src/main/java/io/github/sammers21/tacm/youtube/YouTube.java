@@ -55,9 +55,11 @@ public class YouTube {
     private static final String CREDENTIALS_DIRECTORY = ".youtube-credentials";
 
 
+    private final String host;
     private final String youtubeCfgPath;
 
-    public YouTube(String youtubeCfgPath) throws IOException {
+    public YouTube(String host, String youtubeCfgPath) throws IOException {
+        this.host = host;
         this.youtubeCfgPath = youtubeCfgPath;
         Credential credential = authorize();
         // This object is used to make YouTube Data API requests.
@@ -82,7 +84,7 @@ public class YouTube {
                 .build();
 
         // Build the local server and bind it to port 8081
-        LocalServerReceiver localReceiver = new LocalServerReceiver.Builder().setPort(8081).build();
+        LocalServerReceiver localReceiver = new LocalServerReceiver.Builder().setHost(host).setPort(8081).build();
         return new AuthorizationCodeInstalledApp(flow, localReceiver).authorize("user");
     }
 
