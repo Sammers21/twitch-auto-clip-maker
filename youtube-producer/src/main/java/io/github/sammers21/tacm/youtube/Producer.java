@@ -31,10 +31,7 @@ public class Producer {
     }
 
     public void runProduction() {
-        policies.forEach(productionPolicy -> {
-            attemptToMakeBundle(productionPolicy);
-            vertx.setPeriodic(300_000, event -> attemptToMakeBundle(productionPolicy));
-        });
+        policies.forEach(productionPolicy -> vertx.setPeriodic(24 * 3600 * 1000 / 6, event -> attemptToMakeBundle(productionPolicy)));
     }
 
     public void attemptToMakeBundle(ProductionPolicy productionPolicy) {

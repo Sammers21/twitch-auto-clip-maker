@@ -43,13 +43,15 @@ public class Main {
         options.addOption("cfg", true, "cfg json config file");
         options.addOption("db", true, "db json config file");
         options.addOption("yt", true, "YouTube json config file");
+        options.addOption("host", true, "host");
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
         JsonObject cfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("cfg")))));
         JsonObject dbCfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("db")))));
         String youtubeCfgPath = cmd.getOptionValue("yt");
+        String host = cmd.getOptionValue("host");
 
-        youTube = new YouTube(youtubeCfgPath);
+        youTube = new YouTube(host, youtubeCfgPath);
         dbController = new DbController(dbCfg, VERSION);
         vMaker = new VideoMaker(dbController, vertx, webClient, cfg.getString("client_id"));
         Producer producer = new Producer(vertx, Set.of(new ProductionPolicy("dota2ruhub", 20)), youTube, vMaker, dbController);
