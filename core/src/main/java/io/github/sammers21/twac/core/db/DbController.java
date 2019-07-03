@@ -61,11 +61,11 @@ public class DbController {
                 });
     }
 
-    public Completable insertClip(String clipId, String streamerName, String broadcasterId) {
+    public Completable insertClip(String clipId, String streamerName, String broadcasterId, String title) {
         String fullLink = String.format("https://clips.twitch.tv/%s", clipId);
-        log.info("Insert new clip with clip_id={}, streamer_name={}, broadcaster_id={}", clipId, streamerName, broadcasterId);
+        log.info("Insert new clip with clip_id={}, streamer_name={}, broadcaster_id={}, title={}", clipId, streamerName, broadcasterId, title);
         return pgClient.rxPreparedQuery(
-                "insert into clip(clip_id, streamer_name, broadcaster_id, full_link, app_version) values ($1, $2, $3, $4, $5)",
+                "insert into clip(clip_id, streamer_name, broadcaster_id, full_link, app_version, title) values ($1, $2, $3, $4, $5, $6)",
                 Tuple.of(clipId, streamerName, broadcasterId, fullLink, version)
         ).ignoreElement();
     }

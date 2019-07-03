@@ -88,11 +88,11 @@ public class Streams {
         if (isOffline(channelName)) {
             return Single.error(new IllegalStateException("Streamer is offline:" + channelName));
         }
-        JsonObject entries;
+        JsonObject json;
         synchronized (this) {
-            entries = streamersAndInfo.get(channelName);
+            json = streamersAndInfo.get(channelName);
         }
-        String userId = entries.getString("user_id");
+        String userId = json.getString("user_id");
         HttpRequest<Buffer> clipReq = webClient.postAbs("https://api.twitch.tv/helix/clips");
         clipReq.putHeader("Authorization", String.format("Bearer %s", bearerToken));
         clipReq.addQueryParam("broadcaster_id", userId);
@@ -101,7 +101,7 @@ public class Streams {
             JsonObject arg = resp.bodyAsJsonObject();
             log.info("Clip endpoint response:\n{}", arg.encodePrettily());
             return arg.getJsonArray("data").getJsonObject(0).getString("id");
-        }).doOnSuccess(ok -> dbController.insertClip(ok, channelName, userId)
+        }).doOnSuccess(ok -> dbController.insertClip(ok, channelName, userId, json.getString("title"))
                 .subscribe(() -> {
                     metricRegistry.meter(String.format("channel.%s.createClip", channelName)).mark();
                     log.info("Clip is in the database");

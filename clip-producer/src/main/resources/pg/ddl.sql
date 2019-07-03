@@ -42,4 +42,5 @@ CREATE TABLE clip_released
     included_in_release VARCHAR(500) NOT NULL REFERENCES release (youtube_video_id)
 );
 
-select time from release where youtube_video_id = 'dota2owl' order by time desc limit 1;
+ALTER TABLE clip
+    ADD COLUMN title VARCHAR(500);
