@@ -121,9 +121,11 @@ public class YouTube {
         // information the API response should return. The second argument
         // is the video resource that contains metadata about the new video.
         // The third argument is the actual video content.
+        videoObjectDefiningMetadata.setSnippet(snippet);
         com.google.api.services.youtube.YouTube.Videos.Insert videoInsert = youtube.videos()
                 .insert("snippet,statistics,status", videoObjectDefiningMetadata, mediaContent);
 
+        // Add the completed snippet object to the video resource.
         // Set the upload type and add an event listener.
         MediaHttpUploader uploader = videoInsert.getMediaHttpUploader();
         // Indicate whether direct media upload is enabled. A value of
