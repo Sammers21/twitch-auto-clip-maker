@@ -95,7 +95,7 @@ public class YouTube {
         // Set the video to be publicly visible. This is the default
         // setting. Other supporting settings are "unlisted" and "private."
         VideoStatus status = new VideoStatus();
-        status.setPrivacyStatus("unlisted");
+        status.setPrivacyStatus("public");
         videoObjectDefiningMetadata.setStatus(status);
 
         // Most of the video's metadata is set on the VideoSnippet object.
