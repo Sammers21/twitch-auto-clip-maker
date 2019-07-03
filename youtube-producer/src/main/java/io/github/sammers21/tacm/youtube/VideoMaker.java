@@ -108,7 +108,7 @@ public class VideoMaker {
                                 event.fail(e);
                             }
                         }).toSingle()
-                ).doAfterSuccess(res -> {
+                ).doFinally(() -> {
                     ArrayList<File> filesToRemove = new ArrayList<>(mp4Files);
                     filesToRemove.add(txtBuildFile);
                     filesToRemove.forEach(file ->

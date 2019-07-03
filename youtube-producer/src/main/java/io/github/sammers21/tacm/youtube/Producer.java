@@ -100,7 +100,7 @@ public class Producer {
                                                 event.fail(e);
                                                 throw new IllegalStateException("Upload error", e);
                                             }
-                                        }).doAfterSuccess(s -> {
+                                        }).doFinally(() -> {
                                             String absolutePath = compiledVideoFile.getAbsolutePath();
                                             vertx.fileSystem()
                                                     .rxDelete(absolutePath)
