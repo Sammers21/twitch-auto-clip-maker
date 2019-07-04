@@ -66,7 +66,7 @@ public class DbController {
         log.info("Insert new clip with clip_id={}, streamer_name={}, broadcaster_id={}, title={}", clipId, streamerName, broadcasterId, title);
         return pgClient.rxPreparedQuery(
                 "insert into clip(clip_id, streamer_name, broadcaster_id, full_link, app_version, title) values ($1, $2, $3, $4, $5, $6)",
-                Tuple.of(clipId, streamerName, broadcasterId, fullLink, version)
+                Tuple.of(clipId, streamerName, broadcasterId, fullLink, version, title)
         ).ignoreElement();
     }
 
