@@ -117,5 +117,9 @@ public class DbController {
             }
         });
     }
+
+    public KV kv(String id) {
+        return new KV(id, pgClient);
+    }
 }
 

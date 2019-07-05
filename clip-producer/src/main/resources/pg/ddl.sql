@@ -44,3 +44,10 @@ CREATE TABLE clip_released
 
 ALTER TABLE clip
     ADD COLUMN title VARCHAR(500);
+
+CREATE TABLE kv
+(
+    id    VARCHAR(500),
+    key   VARCHAR(1000),
+    value bytea
+);
