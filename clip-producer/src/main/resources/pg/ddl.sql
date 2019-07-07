@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS clip;
 DROP TABLE IF EXISTS clip_released;
 DROP TABLE IF EXISTS release;
 DROP TABLE IF EXISTS youtube_channel;
+DROP TABLE IF EXISTS kv;
 
 CREATE TABLE client_token
 (
@@ -49,5 +50,6 @@ CREATE TABLE kv
 (
     id    VARCHAR(500),
     key   VARCHAR(1000),
-    value bytea
+    value bytea,
+    PRIMARY KEY (id, key)
 );

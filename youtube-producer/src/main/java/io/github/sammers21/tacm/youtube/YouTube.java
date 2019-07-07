@@ -14,11 +14,11 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.store.DataStore;
-import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.youtube.model.Video;
 import com.google.api.services.youtube.model.VideoSnippet;
 import com.google.api.services.youtube.model.VideoStatus;
 import com.google.common.collect.Lists;
+import io.github.sammers21.twac.core.db.DbController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,10 +58,10 @@ public class YouTube {
     private final String host;
     private final String youtubeCfgPath;
 
-    public YouTube(String host, String youtubeCfgPath) throws IOException {
+    public YouTube(String host, String youtubeCfgPath, DbController dbController) throws IOException {
         this.host = host;
         this.youtubeCfgPath = youtubeCfgPath;
-        Credential credential = authorize();
+        Credential credential = authorize(dbController);
         // This object is used to make YouTube Data API requests.
         youtube = new com.google.api.services.youtube.YouTube.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
                 .setApplicationName("youtube-producer")
@@ -69,18 +69,19 @@ public class YouTube {
         log.info("YouTube: OK");
     }
 
-    private Credential authorize() throws IOException {
+    private Credential authorize(DbController dbController) throws IOException {
         Reader clientSecretReader = new InputStreamReader(new FileInputStream(youtubeCfgPath));
         GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, clientSecretReader);
 
         // This creates the credentials datastore at ~/.oauth-credentials/${credentialDatastore}
-        FileDataStoreFactory fileDataStoreFactory = new FileDataStoreFactory(new File(System.getProperty("user.home") + "/" + CREDENTIALS_DIRECTORY));
-        DataStore<StoredCredential> datastore = fileDataStoreFactory.getDataStore("upload_video");
+//        FileDataStoreFactory fileDataStoreFactory = new FileDataStoreFactory(new File(System.getProperty("user.home") + "/" + CREDENTIALS_DIRECTORY));
+        PgDataFactory pgDataFactory = new PgDataFactory(dbController);
+        DataStore<StoredCredential> dota2ruhub = pgDataFactory.getDataStore("dota2ruhub");
 
         GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
                 HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
                 .setAccessType("offline")
-                .setCredentialDataStore(datastore)
+                .setCredentialDataStore(dota2ruhub)
                 .build();
 
         // Build the local server and bind it to port 8081

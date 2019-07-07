@@ -26,12 +26,12 @@ public class PgDataStore<V extends Serializable> extends AbstractDataStore<V> {
 
     @Override
     public synchronized Set<String> keySet() throws IOException {
-        return null;
+        throw new IllegalStateException("keySet() not implemented");
     }
 
     @Override
     public synchronized Collection values() throws IOException {
-        return null;
+        throw new IllegalStateException("values() not implemented");
     }
 
     @Override
@@ -49,13 +49,12 @@ public class PgDataStore<V extends Serializable> extends AbstractDataStore<V> {
 
     @Override
     public synchronized DataStore clear() throws IOException {
-        return null;
+        throw new IllegalStateException("clear() not implemented");
     }
 
     @Override
     public synchronized DataStore delete(String key) throws IOException {
-        return null;
+        throw new IllegalStateException("delete(key) not implemented");
     }
-
 
 }
