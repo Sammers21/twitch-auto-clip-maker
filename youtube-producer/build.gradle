@@ -14,7 +14,7 @@ dependencies {
     compile project(":core")
 
     // logging
-    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.0.9'
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
     
     // YouTube related stuff
     compile group: 'com.google.apis', name: 'google-api-services-youtube', version: 'v3-rev212-1.25.0'
