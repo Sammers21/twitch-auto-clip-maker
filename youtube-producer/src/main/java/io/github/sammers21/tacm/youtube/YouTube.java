@@ -19,6 +19,7 @@ import com.google.api.services.youtube.model.VideoSnippet;
 import com.google.api.services.youtube.model.VideoStatus;
 import com.google.common.collect.Lists;
 import io.github.sammers21.twac.core.db.DbController;
+import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,6 +28,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -34,7 +37,7 @@ import java.util.List;
 public class YouTube {
 
     private final static List<String> SCOPES = Lists.newArrayList("https://www.googleapis.com/auth/youtube.upload");
-    private static final Logger log = LoggerFactory.getLogger(YouTube.class);
+    private final Logger log;
 
     private static final String VIDEO_FILE_FORMAT = "video/*";
     /**
@@ -49,42 +52,41 @@ public class YouTube {
      */
     public static final JsonFactory JSON_FACTORY = new JacksonFactory();
 
-    /**
-     * This is the directory that will be used under the user's home directory where OAuth tokens will be stored.
-     */
-    private static final String CREDENTIALS_DIRECTORY = ".youtube-credentials";
-
-
     private final String host;
-    private final String youtubeCfgPath;
+    private final File youtubeCfgPath;
+    private final DbController dbController;
+    private final JsonObject json;
+    private final String youtubeChan;
 
-    public YouTube(String host, String youtubeCfgPath, DbController dbController) throws IOException {
-        this.host = host;
+    public YouTube(String host, File youtubeCfgPath, DbController dbController) {
         this.youtubeCfgPath = youtubeCfgPath;
-        Credential credential = authorize(dbController);
-        // This object is used to make YouTube Data API requests.
-        youtube = new com.google.api.services.youtube.YouTube.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
-                .setApplicationName("youtube-producer")
-                .build();
-        log.info("YouTube: OK");
+        this.youtubeChan = this.youtubeCfgPath.getName().replace(".json", "");
+        this.host = host;
+        log = LoggerFactory.getLogger(String.format("%s:[%s]", YouTube.class.getName(), youtubeChan));
+        try {
+            this.json = new JsonObject(new String(Files.readAllBytes(Paths.get(this.youtubeCfgPath.getPath()))));
+            this.dbController = dbController;
+            Credential credential = authorize();
+            youtube = new com.google.api.services.youtube.YouTube.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
+                    .setApplicationName("youtube-producer")
+                    .build();
+            log.info("YouTube: OK");
+        } catch (IOException e) {
+            log.error("YouTube: Failed");
+            throw new IllegalStateException("YouTube: Failed initialization");
+        }
     }
 
-    private Credential authorize(DbController dbController) throws IOException {
+    private Credential authorize() throws IOException {
         Reader clientSecretReader = new InputStreamReader(new FileInputStream(youtubeCfgPath));
         GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, clientSecretReader);
-
-        // This creates the credentials datastore at ~/.oauth-credentials/${credentialDatastore}
-//        FileDataStoreFactory fileDataStoreFactory = new FileDataStoreFactory(new File(System.getProperty("user.home") + "/" + CREDENTIALS_DIRECTORY));
         PgDataFactory pgDataFactory = new PgDataFactory(dbController);
-        DataStore<StoredCredential> dota2ruhub = pgDataFactory.getDataStore("dota2ruhub");
-
+        DataStore<StoredCredential> dota2ruhub = pgDataFactory.getDataStore(youtubeChan);
         GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
                 HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
                 .setAccessType("offline")
                 .setCredentialDataStore(dota2ruhub)
                 .build();
-
-        // Build the local server and bind it to port 8081
         LocalServerReceiver localReceiver = new LocalServerReceiver.Builder().setHost(host).setPort(8081).build();
         return new AuthorizationCodeInstalledApp(flow, localReceiver).authorize("user");
     }

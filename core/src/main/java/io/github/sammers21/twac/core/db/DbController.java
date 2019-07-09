@@ -15,9 +15,12 @@ import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class DbController {
@@ -86,7 +89,7 @@ public class DbController {
                 res.add(iterator.next().getString("clip_id"));
             }
             return res;
-        }).doAfterSuccess(strings -> log.info("selectNonIncludedClips for chan: {} size={}", streamerName, strings.size()));
+        }).doAfterSuccess(strings -> log.info("selectNonIncludedClips for chan='{}' size={}", streamerName, strings.size()));
     }
 
     public Completable bundleOfClips(List<String> clipIds, String youtubeVideoId, String youtubeChan) {
@@ -102,6 +105,23 @@ public class DbController {
                         log.info("created bundleOfClips youtubeId='{}'. Clips={}", youtubeVideoId, clipIds.stream().collect(Collectors.joining(", ", "[", "]")))
                 )
                 .ignoreElement();
+    }
+
+    public Single<Map<LocalDate, Integer>> releasesOnChan(String youtubeChan) {
+        return pgClient.rxPreparedQuery("select time::date as t, count(*) as c\n" +
+                "from release\n" +
+                "where youtube_chan = 'dota2owl'\n" +
+                "group by time::date")
+                .map(pgRowSet -> {
+                    Map<LocalDate, Integer> res = new HashMap<>();
+                    PgIterator iterator = pgRowSet.iterator();
+                    while (iterator.hasNext()) {
+                        Row next = iterator.next();
+                        res.put(next.getLocalDate("t"), next.getInteger("c"));
+                    }
+                    return res;
+                });
+
     }
 
     public Maybe<LocalDateTime> lastReleaseTimeOnChan(String youtubeChanName) {
