@@ -12,16 +12,20 @@ import io.reactivex.Completable;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
+import org.javatuples.Pair;
+import org.javatuples.Quartet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class DbController {
 
@@ -90,6 +94,41 @@ public class DbController {
             }
             return res;
         }).doAfterSuccess(strings -> log.info("selectNonIncludedClips for chan='{}' size={}", streamerName, strings.size()));
+    }
+
+
+    // Single of title, count , max_time, streamer_name
+    public Single<List<Quartet<String, Integer, LocalDateTime, String>>> titleGroupedNonIncluded(List<String> streamers) {
+        String streamerCondition = streamers.stream()
+                .map(streamer -> String.format("streamer_name = '%s'", streamer))
+                .collect(Collectors.joining(" or ", "(", ")"));
+
+        String sql = String.format(
+                "select title as t , count(*) as c, max(time) as mt, min(streamer_name) as ms\n" +
+                        "from clip\n" +
+                        "left join clip_released on clip.clip_id = clip_released.clip_id\n" +
+                        "where included_in_release is null and %s\n" +
+                        "group by title"
+                , streamerCondition
+        );
+
+        log.info("SQL:\n{}", sql);
+        return pgClient.rxPreparedQuery(sql).map(rows -> {
+            List<Quartet<String, Integer, LocalDateTime, String>> res = new ArrayList<>(rows.size());
+            PgIterator iterator = rows.iterator();
+            while (iterator.hasNext()) {
+                Row next = iterator.next();
+                res.add(
+                        new Quartet<>(
+                                next.getString("t"),
+                                next.getInteger("c"),
+                                next.getLocalDateTime("mt"),
+                                next.getString("ms")
+                        )
+                );
+            }
+            return res;
+        });
     }
 
     public Completable bundleOfClips(List<String> clipIds, String youtubeVideoId, String youtubeChan) {
