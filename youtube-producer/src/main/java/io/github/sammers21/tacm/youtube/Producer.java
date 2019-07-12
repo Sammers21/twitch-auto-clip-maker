@@ -60,14 +60,6 @@ public class Producer {
     }
 
     public void runProduction() {
-        canReleaseToday()
-                .subscribe(can -> {
-                    if (can) {
-
-                    } else {
-                        log.info("Can't release videos today");
-                    }
-                }, error -> log.error("db problems", error));
 //        dbController.lastReleaseTimeOnChan(youtubeChan)
 //                .doOnComplete(() -> {
 //                    log.info("Not found last release for {}", youtubeChan);
@@ -101,6 +93,14 @@ public class Producer {
     public void attemptToMakeBundle() {
         log.info("Releasing on '{}'", youtubeChan);
 
+        canReleaseToday()
+                .subscribe(can -> {
+                    if (can) {
+
+                    } else {
+                        log.info("Can't release videos today");
+                    }
+                }, error -> log.error("db problems", error));
 //
 //        dbController.selectNonIncludedClips(settings.)
 //                .map(strings -> {
