@@ -22,4 +22,6 @@ dependencies {
 
     // cli
     compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
+
+    compile 'org.javatuples:javatuples:1.2'
 }
