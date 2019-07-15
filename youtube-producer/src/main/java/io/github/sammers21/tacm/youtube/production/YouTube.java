@@ -1,4 +1,4 @@
-package io.github.sammers21.tacm.youtube;
+package io.github.sammers21.tacm.youtube.production;
 
 import com.google.api.client.auth.oauth2.Credential;
 import com.google.api.client.auth.oauth2.StoredCredential;
@@ -18,6 +18,7 @@ import com.google.api.services.youtube.model.Video;
 import com.google.api.services.youtube.model.VideoSnippet;
 import com.google.api.services.youtube.model.VideoStatus;
 import com.google.common.collect.Lists;
+import io.github.sammers21.tacm.youtube.store.PgDataFactory;
 import io.github.sammers21.twac.core.db.DbController;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;

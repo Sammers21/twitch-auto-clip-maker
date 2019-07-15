@@ -1,5 +1,8 @@
 package io.github.sammers21.tacm.youtube;
 
+import io.github.sammers21.tacm.youtube.production.Producer;
+import io.github.sammers21.tacm.youtube.production.VideoMaker;
+import io.github.sammers21.tacm.youtube.production.YouTube;
 import io.github.sammers21.twac.core.Utils;
 import io.github.sammers21.twac.core.db.DbController;
 import io.vertx.core.VertxOptions;

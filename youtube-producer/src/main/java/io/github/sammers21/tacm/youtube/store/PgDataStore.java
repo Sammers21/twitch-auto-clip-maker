@@ -1,4 +1,4 @@
-package io.github.sammers21.tacm.youtube;
+package io.github.sammers21.tacm.youtube.store;
 
 import com.google.api.client.util.IOUtils;
 import com.google.api.client.util.Preconditions;
