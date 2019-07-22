@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Main {
 
@@ -47,14 +48,12 @@ public class Main {
         Options options = new Options();
         options.addOption("cfg", true, "cfg json config file");
         options.addOption("db", true, "db json config file");
-        options.addOption("yt", true, "YouTube json config file");
-        options.addOption("pd", true, "production directory");
+        options.addOption("pd", true, "Youtube production directory with youtube config files");
         options.addOption("host", true, "host");
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
         JsonObject cfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("cfg")))));
         JsonObject dbCfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("db")))));
-        String youtubeCfgPath = cmd.getOptionValue("yt");
         String host = cmd.getOptionValue("host");
         File productionDir = new File(cmd.getOptionValue("pd"));
         if (productionDir.exists() && productionDir.isDirectory()) {
@@ -64,11 +63,12 @@ public class Main {
         }
         dbController = new DbController(dbCfg, VERSION);
         vMaker = new VideoMaker(dbController, vertx, webClient, cfg.getString("client_id"));
+        AtomicBoolean videoReleaseLockFlag = new AtomicBoolean(false);
         Arrays.stream(Objects.requireNonNull(productionDir.listFiles(File::isFile))).forEach(file -> {
             try {
                 JsonObject json = new JsonObject(new String(Files.readAllBytes(Paths.get(file.getAbsolutePath()))));
                 youTube = new YouTube(host, file, dbController);
-                Producer producer = new Producer(vertx, json, youTube, vMaker, dbController);
+                Producer producer = new Producer(vertx, json, youTube, vMaker, dbController, videoReleaseLockFlag);
                 producer.runProduction();
             } catch (IOException e) {
                 throw new IllegalStateException("Init error");

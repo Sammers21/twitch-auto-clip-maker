@@ -67,11 +67,12 @@ public class YouTube {
         try {
             this.json = new JsonObject(new String(Files.readAllBytes(Paths.get(this.youtubeCfgPath.getPath()))));
             this.dbController = dbController;
+            log.info("Authorizing on youtube");
             Credential credential = authorize();
+            log.info("Youtube auth is OK");
             youtube = new com.google.api.services.youtube.YouTube.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
                     .setApplicationName("youtube-producer")
                     .build();
-            log.info("YouTube: OK");
         } catch (IOException e) {
             log.error("YouTube: Failed");
             throw new IllegalStateException("YouTube: Failed initialization");
@@ -82,11 +83,11 @@ public class YouTube {
         Reader clientSecretReader = new InputStreamReader(new FileInputStream(youtubeCfgPath));
         GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, clientSecretReader);
         PgDataFactory pgDataFactory = new PgDataFactory(dbController);
-        DataStore<StoredCredential> dota2ruhub = pgDataFactory.getDataStore(youtubeChan);
+        DataStore<StoredCredential> youtubeChanDataStore = pgDataFactory.getDataStore(youtubeChan);
         GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
                 HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
                 .setAccessType("offline")
-                .setCredentialDataStore(dota2ruhub)
+                .setCredentialDataStore(youtubeChanDataStore)
                 .build();
         LocalServerReceiver localReceiver = new LocalServerReceiver.Builder().setHost(host).setPort(8081).build();
         return new AuthorizationCodeInstalledApp(flow, localReceiver).authorize("user");

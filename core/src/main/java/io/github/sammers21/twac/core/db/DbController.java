@@ -12,20 +12,18 @@ import io.reactivex.Completable;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
-import org.javatuples.Pair;
-import org.javatuples.Quartet;
+import org.javatuples.Quintet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 public class DbController {
 
@@ -97,33 +95,37 @@ public class DbController {
     }
 
 
-    // Single of title, count , max_time, streamer_name
-    public Single<List<Quartet<String, Integer, LocalDateTime, String>>> titleGroupedNonIncluded(List<String> streamers) {
+    // title, count(*), max(time), array_agg(clip.clip_id), min(streamer_name)
+    public Single<List<Quintet<String, Integer, LocalDateTime, String[], String>>> titleGroupedNonIncluded(Collection<String> streamers) {
         String streamerCondition = streamers.stream()
                 .map(streamer -> String.format("streamer_name = '%s'", streamer))
                 .collect(Collectors.joining(" or ", "(", ")"));
 
         String sql = String.format(
-                "select title as t , count(*) as c, max(time) as mt, min(streamer_name) as ms\n" +
+                "select title as t, count(*) as c, max(time) as mt, array_agg(clip.clip_id) as agg, min(streamer_name) as msn\n" +
                         "from clip\n" +
-                        "left join clip_released on clip.clip_id = clip_released.clip_id\n" +
-                        "where included_in_release is null and %s\n" +
-                        "group by title"
+                        "         left join clip_released cr on clip.clip_id = cr.clip_id\n" +
+                        "where streamer_name = 'csruhub'\n" +
+                        "  and included_in_release is null\n" +
+                        "  and title is not null\n" +
+                        "group by title\n" +
+                        "order by max(time) desc;"
                 , streamerCondition
         );
 
         log.info("SQL:\n{}", sql);
         return pgClient.rxPreparedQuery(sql).map(rows -> {
-            List<Quartet<String, Integer, LocalDateTime, String>> res = new ArrayList<>(rows.size());
+            List<Quintet<String, Integer, LocalDateTime, String[], String>> res = new ArrayList<>(rows.size());
             PgIterator iterator = rows.iterator();
             while (iterator.hasNext()) {
                 Row next = iterator.next();
                 res.add(
-                        new Quartet<>(
+                        new Quintet<>(
                                 next.getString("t"),
                                 next.getInteger("c"),
                                 next.getLocalDateTime("mt"),
-                                next.getString("ms")
+                                next.getStringArray("agg"),
+                                next.getString("msn")
                         )
                 );
             }
