@@ -31,8 +31,6 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 
 public class YouTube {
@@ -93,7 +91,7 @@ public class YouTube {
         return new AuthorizationCodeInstalledApp(flow, localReceiver).authorize("user");
     }
 
-    public String uploadVideo(File videoFile) throws IOException {
+    public String uploadVideo(String title, String description, List<String> tags, File videoFile) throws IOException {
         long fLength = videoFile.length();
         // Add extra information to the video before uploading.
         Video videoObjectDefiningMetadata = new Video();
@@ -106,19 +104,9 @@ public class YouTube {
         // Most of the video's metadata is set on the VideoSnippet object.
         VideoSnippet snippet = new VideoSnippet();
 
+        snippet.setTitle(title);
+        snippet.setDescription(description);
 
-        // This code uses a Calendar instance to create a unique name and
-        // description for test purposes so that you can easily upload
-        // multiple files. You should remove this code from your project
-        // and use your own standard names instead.
-        Calendar cal = Calendar.getInstance();
-        snippet.setTitle(videoFile.getName() + " video from twitch");
-        snippet.setDescription(
-                "Video uploaded via YouTube Data API V3 using the Java library " + "on " + cal.getTime());
-
-        // Set the keyword tags that you want to associate with the video.
-        List<String> tags = new ArrayList<String>();
-        tags.add("test");
         snippet.setTags(tags);
         InputStreamContent mediaContent = new InputStreamContent(VIDEO_FILE_FORMAT, new FileInputStream(videoFile));
         // Insert the video. The command sends three arguments. The first

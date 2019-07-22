@@ -14,7 +14,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -55,23 +57,20 @@ public class VideoMaker {
                 .flatMapCompletable(resp -> vertx.fileSystem().rxWriteFile(pathToSave, resp.body()))
                 .doOnComplete(() -> log.info("Clip has been downloaded:'{}'", new File(pathToSave).getAbsolutePath()));
     }
-//
-//    public Single<File> mkVideoOnChan(ProductionPolicy productionPolicy) {
-//        String chan = productionPolicy.Policy_for_streamer();
-//        Integer limit = productionPolicy.Clips_per_release();
-//        return dbController.selectNonIncludedClips(chan)
-//                .flatMap(clipIds -> {
-//                    List<Single<File>> downloads = clipIds.stream().limit(limit).map(clipId -> {
-//                        String fileName = clipId + ".mp4";
-//                        return this.downloadClip(clipId, fileName).andThen(Single.defer(() -> Single.just(new File(fileName))));
-//                    }).collect(Collectors.toList());
-//                    Collections.reverse(downloads);
-//                    return Single.concat(downloads).toList();
-//                })
-//                .doAfterSuccess(files -> files.forEach(File::deleteOnExit))
-//                .flatMap(files -> concatVideos(files, String.format("%s-%s.mp4", chan, Instant.now().toString().replace(":", "_"))))
-//                .doAfterSuccess(File::deleteOnExit);
-//    }
+
+    public Single<File> mkVideoOfClips(Collection<String> clips) {
+        return Single.just(clips)
+                .flatMap(clipIds -> {
+                    List<Single<File>> downloads = clipIds.stream().map(clipId -> {
+                        String fileName = clipId + ".mp4";
+                        return this.downloadClip(clipId, fileName).andThen(Single.defer(() -> Single.just(new File(fileName))));
+                    }).collect(Collectors.toList());
+                    return Single.concat(downloads).toList();
+                })
+                .doAfterSuccess(files -> files.forEach(File::deleteOnExit))
+                .flatMap(files -> concatVideos(files, String.format("%s.mp4", Instant.now().toString().replace(":", "_"))))
+                .doAfterSuccess(File::deleteOnExit);
+    }
 
     private Single<File> concatVideos(List<File> mp4Files, String resultedName) {
         String txtBuildFileText = mp4Files.stream().map(file -> String.format("file '%s'", file.getAbsolutePath())).collect(Collectors.joining("\n"));

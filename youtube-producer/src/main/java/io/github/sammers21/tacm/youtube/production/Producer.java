@@ -3,20 +3,27 @@ package io.github.sammers21.tacm.youtube.production;
 import io.github.sammers21.tacm.youtube.settings.Settings;
 import io.github.sammers21.tacm.youtube.settings.SimpleIntervalCheck;
 import io.github.sammers21.twac.core.db.DbController;
+import io.reactivex.Maybe;
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.Vertx;
-import org.javatuples.Quintet;
+import org.javatuples.Triplet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 public class Producer {
 
@@ -28,8 +35,9 @@ public class Producer {
     private final DbController dbController;
     private final String youtubeChan;
     private final Settings settings;
-    private final Set<String> twitchChans;
+    private final Set<String> streamerts;
     private final AtomicBoolean locked;
+    private final Random rnd = new Random();
 
     public Producer(Vertx vertx, JsonObject youtubeJson, YouTube youTube, VideoMaker videoMaker, DbController dbController, AtomicBoolean locked) {
         this.vertx = vertx;
@@ -37,13 +45,13 @@ public class Producer {
         this.youTube = youTube;
         this.videoMaker = videoMaker;
         this.dbController = dbController;
-        this.youtubeChan = youtubeJson.getString("youtubeChan");
+        this.youtubeChan = productionPolicy.getString("youtube_chan");
         this.locked = locked;
         this.settings = Settings.parseJson(productionPolicy.getJsonObject("production_settings"));
         log = LoggerFactory.getLogger(String.format("%s:[%s]", Producer.class.getName(), youtubeChan));
         ArrayList<String> streamers = new ArrayList<>();
         productionPolicy.getJsonArray("clips_from_channels").forEach(o -> streamers.add((String) o));
-        twitchChans = new HashSet<>(streamers);
+        streamerts = new HashSet<>(streamers);
     }
 
     public Single<Integer> releasedTodayTimes() {
@@ -69,7 +77,11 @@ public class Producer {
         vertx.setPeriodic(10_000, event ->
                 canRelease().subscribe(canRelease -> {
                     if (locked.compareAndSet(false, true)) {
-                        attemptToMakeBundle(() -> locked.compareAndSet(true, false));
+                        log.info("production lock has been taken");
+                        attemptToMakeBundle(() -> {
+                            boolean res = locked.compareAndSet(true, false);
+                            log.info("Releasing production lock={}", res);
+                        });
                     }
                 }, error -> log.error("Release error", error))
         );
@@ -78,56 +90,86 @@ public class Producer {
     public void attemptToMakeBundle(Runnable release) {
         log.info("Releasing on '{}'", youtubeChan);
         if (settings instanceof SimpleIntervalCheck) {
+            int size = streamerts.size();
+            int skip = rnd.nextInt(size);
+            String streamerToRelease = streamerts.stream().skip(skip).findFirst().get();
+            log.info("Streamer {} has been chosen out of {} streamers to be released", streamerToRelease, size);
             SimpleIntervalCheck simpleIntervalCheck = (SimpleIntervalCheck) this.settings;
-            dbController.titleGroupedNonIncluded(twitchChans)
-                    .subscribe(quintets -> {
-                        Integer max = simpleIntervalCheck.getMax();
-                        Integer min = simpleIntervalCheck.getMin();
-                        Iterator<Quintet<String, Integer, LocalDateTime, String[], String>> iterator = quintets.iterator();
-                        while (iterator.hasNext()) {
-                            Quintet<String, Integer, LocalDateTime, String[], String> next = iterator.next();
+            Integer max = simpleIntervalCheck.getMax();
+            Integer min = simpleIntervalCheck.getMin();
+            dbController.titleGroupedNonIncluded(streamerToRelease)
+                    .flatMap(triplets -> {
+                        List<String> clipsToRelease = new LinkedList<>();
+                        for (Triplet<String, LocalDateTime, String[]> next : triplets) {
+
+                            List<String> iterClips = Arrays.asList(next.getValue2());
+
+                            int currentElems = clipsToRelease.size();
+                            int lengthOfClipPack = next.getValue2().length;
+
+                            if (currentElems + lengthOfClipPack <= max) {
+                                clipsToRelease.addAll(iterClips);
+                            } else {
+                                // only part needed
+                                if (currentElems < min) {
+                                    int toTake = min - currentElems;
+                                    iterClips.stream().limit(toTake).forEach(clipsToRelease::add);
+                                    log.info("Took only part of another clip pack");
+                                    break;
+                                }
+                                // already enough
+                                else {
+                                    log.info("Full clip pack");
+                                    break;
+                                }
+                            }
                         }
-                    }, error -> {
-                        log.error("Unable to select from postgres grouped");
-                        release.run();
-                    });
+                        Collections.reverse(clipsToRelease);
+                        return Single.just(clipsToRelease);
+                    })
+                    .flatMapMaybe(strings -> {
+                        if (strings.size() < min) {
+                            log.info("clips_size={} is too low to be released on chan={}", strings.size(), streamerToRelease);
+                            return Maybe.empty();
+                        } else {
+                            log.info("clips_size={} is fine to be released on chan={}", strings.size(), streamerToRelease);
+                            return Maybe.just(strings);
+                        }
+                    })
+                    .doOnComplete(() -> log.info("Nothing to release on chan={}, streamer={}", youtubeChan, streamerToRelease))
+                    .doAfterSuccess(clipIds -> log.info("Clips to include:{}", clipIds.stream().collect(Collectors.joining(", ", "[", "]"))))
+                    .flatMapCompletable((List<String> selectedClips) ->
+                            videoMaker
+                                    .mkVideoOfClips(selectedClips)
+                                    .flatMapCompletable(compiledVideoFile -> {
+                                                Maybe<String> maybeUpload = vertx.rxExecuteBlocking(ev -> {
+                                                    try {
+                                                        String videoId = youTube.uploadVideo(compiledVideoFile);
+                                                        ev.complete(videoId);
+                                                    } catch (IOException e) {
+                                                        ev.fail(e);
+                                                        log.error("unload error", e);
+                                                    }
+                                                });
+                                                return maybeUpload.toSingle()
+                                                        .flatMapCompletable(videoId -> dbController.bundleOfClips(selectedClips, videoId, youtubeChan))
+                                                        .doAfterTerminate(() -> {
+                                                            String absolutePath = compiledVideoFile.getAbsolutePath();
+                                                            vertx.fileSystem()
+                                                                    .rxDelete(absolutePath)
+                                                                    .subscribe(() -> log.info("Compiled video file remove: {}", absolutePath));
+                                                        });
+                                            }
+                                    ))
+                    .doAfterTerminate(release::run)
+                    .subscribe(
+                            () -> log.info("Bundle are made and available on YouTube"),
+                            err -> log.error("Bundle are not made", err)
+                    );
+
         } else {
             log.error("Unknown settings type:{}", settings.getType());
             release.run();
         }
-//        dbController.selectNonIncludedClips(settings.)
-//                .map(strings -> {
-//                            List<String> ids = strings.stream()
-//                                    .limit(productionPolicy.Clips_per_release())
-//                                    .collect(Collectors.toList());
-//                            selectedIds.set(ids);
-//                            return ids;
-//                        }
-//                )
-//                .doAfterSuccess(clipIds -> log.info("Clips to include:{}", clipIds.stream().collect(Collectors.joining(", ", "[", "]"))))
-//                .flatMap(selectedClips ->
-//                        videoMaker
-//                                .mkVideoOnChan(productionPolicy)
-//                                .flatMap(compiledVideoFile -> vertx.rxExecuteBlocking((Future<String> event) -> {
-//                                            try {
-//                                                String videoId = youTube.uploadVideo(compiledVideoFile);
-//                                                event.complete(videoId);
-//                                            } catch (IOException e) {
-//                                                event.fail(e);
-//                                                throw new IllegalStateException("Upload error", e);
-//                                            }
-//                                        }).doFinally(() -> {
-//                                            String absolutePath = compiledVideoFile.getAbsolutePath();
-//                                            vertx.fileSystem()
-//                                                    .rxDelete(absolutePath)
-//                                                    .subscribe(() -> log.info("Compiled video file remove: {}", absolutePath));
-//                                        }).toSingle()
-//                                )
-//                )
-//                .flatMapCompletable(videoId -> dbController.bundleOfClips(selectedIds.get(), videoId, productionPolicy.Release_on_youtube_chan()))
-//                .subscribe(
-//                        () -> log.info("Bundle are made and available on YouTube"),
-//                        err -> log.error("Bundle are not made", err)
-//                );
     }
 }
