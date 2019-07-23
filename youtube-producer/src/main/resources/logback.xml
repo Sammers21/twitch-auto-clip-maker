@@ -4,11 +4,12 @@
       <pattern>%date{ISO8601} [%thread] %-5level %logger{15} - %msg %n</pattern>
     </encoder>
   </appender>
-  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-    <file>youtube-producer.log.txt</file>
-    <append>true</append>
-    <!-- set immediateFlush to false for much higher logging throughput -->
-    <immediateFlush>false</immediateFlush>
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>youtube-producer-%d{yyyy-MM-dd}.log</fileNamePattern>
+      <maxHistory>30</maxHistory>
+      <totalSizeCap>3GB</totalSizeCap>
+    </rollingPolicy>
     <encoder>
       <pattern>%date{ISO8601} [%thread] %-5level %logger{15} - %msg %n</pattern>
     </encoder>

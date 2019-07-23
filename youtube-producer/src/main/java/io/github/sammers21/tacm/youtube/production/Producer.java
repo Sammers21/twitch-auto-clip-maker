@@ -148,7 +148,9 @@ public class Producer {
                                                     try {
                                                         String title = mkYouTubeTitle(streamerToRelease, titles);
                                                         log.info("Video title={}", title);
-                                                        String videoId = youTube.uploadVideo(title, "", new LinkedList<>(), compiledVideoFile);
+                                                        LinkedList<String> tags = new LinkedList<>(titles);
+                                                        tags.add(streamerToRelease);
+                                                        String videoId = youTube.uploadVideo(title, "", tags, compiledVideoFile);
                                                         ev.complete(videoId);
                                                     } catch (IOException e) {
                                                         ev.fail(e);
@@ -185,7 +187,7 @@ public class Producer {
         }
 
         if (builder.length() > 70) {
-            return builder.substring(0, 71);
+            return builder.substring(0, 68) + "...";
         } else {
             return builder.toString();
         }
