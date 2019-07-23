@@ -3,6 +3,7 @@ package io.github.sammers21.tacm.youtube.production;
 import io.github.sammers21.twac.core.db.DbController;
 import io.reactivex.Completable;
 import io.reactivex.Single;
+import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.buffer.Buffer;
 import io.vertx.reactivex.ext.web.client.WebClient;
@@ -18,6 +19,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -44,7 +46,12 @@ public class VideoMaker {
                 .addQueryParam("id", clipId)
                 .rxSend()
                 .flatMap(resp -> {
-                    String url = resp.bodyAsJsonObject().getJsonArray("data").getJsonObject(0).getString("thumbnail_url");
+                    JsonObject entries = resp.bodyAsJsonObject();
+                    Objects.requireNonNull(entries);
+                    if (!entries.containsKey("data") || !entries.getJsonArray("data").getJsonObject(0).containsKey("thumbnail_url")) {
+                        return Single.error(new IllegalStateException("Bad response before clip download: " + entries.encodePrettily()));
+                    }
+                    String url = entries.getJsonArray("data").getJsonObject(0).getString("thumbnail_url");
                     Matcher matcher = CLIP_PATTERN.matcher(url);
                     matcher.find();
                     String mediaSubDomain = matcher.group(1);
