@@ -92,6 +92,7 @@ public class Producer {
         if (settings instanceof SimpleIntervalCheck) {
             int size = streamerts.size();
             int skip = rnd.nextInt(size);
+            Set<String> titles = Collections.synchronizedSet(new HashSet<>());
             String streamerToRelease = streamerts.stream().skip(skip).findFirst().get();
             log.info("Streamer {} has been chosen out of {} streamers to be released", streamerToRelease, size);
             SimpleIntervalCheck simpleIntervalCheck = (SimpleIntervalCheck) this.settings;
@@ -109,10 +110,11 @@ public class Producer {
 
                             if (currentElems + lengthOfClipPack <= max) {
                                 clipsToRelease.addAll(iterClips);
+                                titles.add(next.getValue0());
                             } else {
                                 // only part needed
                                 if (currentElems < min) {
-                                    int toTake = min - currentElems;
+                                    int toTake = max - currentElems;
                                     iterClips.stream().limit(toTake).forEach(clipsToRelease::add);
                                     log.info("Took only part of another clip pack");
                                     break;
@@ -144,7 +146,9 @@ public class Producer {
                                     .flatMapCompletable(compiledVideoFile -> {
                                                 Maybe<String> maybeUpload = vertx.rxExecuteBlocking(ev -> {
                                                     try {
-                                                        String videoId = youTube.uploadVideo(compiledVideoFile);
+                                                        String title = mkYouTubeTitle(streamerToRelease, titles);
+                                                        log.info("Video title={}", title);
+                                                        String videoId = youTube.uploadVideo(title, "", new LinkedList<>(), compiledVideoFile);
                                                         ev.complete(videoId);
                                                     } catch (IOException e) {
                                                         ev.fail(e);
@@ -172,4 +176,19 @@ public class Producer {
             release.run();
         }
     }
+
+    private String mkYouTubeTitle(String streamerName, Set<String> titles) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(streamerName).append(":").append(" ");
+        for (String title : titles) {
+            builder.append(title).append(" | ");
+        }
+
+        if (builder.length() > 70) {
+            return builder.substring(0, 71);
+        } else {
+            return builder.toString();
+        }
+    }
+
 }
