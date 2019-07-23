@@ -21,9 +21,11 @@ public class KV {
     }
 
     public void put(String key, byte[] value) {
-        String sql = "insert into kv(id, key, value) values ($1, $2, $3)";
+        String sql = "insert into kv(id, key, value) values ($1, $2, $3)\n" +
+                "ON CONFLICT ON CONSTRAINT kv_pkey DO update set value = $3\n" +
+                "where kv.id = $1 and kv.key = $2";
         Tuple tuple = Tuple.of(id, key, Buffer.buffer(value));
-        logSQL(sql, tuple);
+        logSQL(sql, Tuple.of(id, key, "bin data"));
         pgClient.rxPreparedQuery(sql, tuple).blockingGet();
     }
 
