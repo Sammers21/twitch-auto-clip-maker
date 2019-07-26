@@ -13,7 +13,8 @@ dependencies {
     // metrics 
     compile group: 'io.dropwizard.metrics', name: 'metrics-core', version: dropwizardVersion
     compile group: 'io.dropwizard.metrics', name: 'metrics-graphite', version: dropwizardVersion
-    
+    compile group: 'io.dropwizard.metrics', name: 'metrics-jvm', version: dropwizardVersion
+
     // twitch api 
     compile group: 'com.github.twitch4j', name: 'twitch4j', version: '1.0.0-alpha.15'
 

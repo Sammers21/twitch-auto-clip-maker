@@ -5,6 +5,9 @@ import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
+import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
+import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
+import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
 import com.github.twitch4j.TwitchClient;
 import com.github.twitch4j.TwitchClientBuilder;
@@ -198,6 +201,9 @@ public class Main {
                     .filter(MetricFilter.ALL)
                     .build(graphite);
             reporter.start(1, TimeUnit.SECONDS);
+            metricRegistry.register(String.format("%s.clip-maker.memory", ip,), new MemoryUsageGaugeSet())
+            metricRegistry.register(String.format("%s.clip-maker.gc", ip,), new GarbageCollectorMetricSet())
+            metricRegistry.register(String.format("%s.clip-maker.thread", ip,), new ThreadStatesGaugeSet())
         }
     }
 }
