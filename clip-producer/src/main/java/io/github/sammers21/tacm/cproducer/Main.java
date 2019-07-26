@@ -201,9 +201,9 @@ public class Main {
                     .filter(MetricFilter.ALL)
                     .build(graphite);
             reporter.start(1, TimeUnit.SECONDS);
-            metricRegistry.register(String.format("%s.clip-maker.memory", ip,), new MemoryUsageGaugeSet())
-            metricRegistry.register(String.format("%s.clip-maker.gc", ip,), new GarbageCollectorMetricSet())
-            metricRegistry.register(String.format("%s.clip-maker.thread", ip,), new ThreadStatesGaugeSet())
+            metricRegistry.register(String.format("%s.clip-maker.memory", ip), new MemoryUsageGaugeSet());
+            metricRegistry.register(String.format("%s.clip-maker.gc", ip), new GarbageCollectorMetricSet());
+            metricRegistry.register(String.format("%s.clip-maker.thread", ip), new ThreadStatesGaugeSet());
         }
     }
 }
