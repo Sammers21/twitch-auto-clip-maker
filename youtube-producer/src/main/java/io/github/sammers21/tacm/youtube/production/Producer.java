@@ -76,7 +76,7 @@ public class Producer {
         }
         return res.map(resBool -> {
             boolean locked = this.locked.get();
-            boolean decision = resBool && locked;
+            boolean decision = resBool && !locked;
             log.info("release decision={}[locked={}, video_count={}]", decision, locked, resBool);
             return decision;
         });
