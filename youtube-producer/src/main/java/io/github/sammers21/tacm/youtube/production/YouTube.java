@@ -89,7 +89,7 @@ public class YouTube {
                 .setCredentialDataStore(youtubeChanDataStore)
                 .build();
         LocalServerReceiver localReceiver = new LocalServerReceiver.Builder().setHost(host).setPort(8081).build();
-        return new AuthorizationCodeInstalledApp(flow, localReceiver).authorize("user");
+        return new AuthorizationCodeInstalledApp(flow, localReceiver).authorize(String.format("%s-key", youtubeChan));
     }
 
     public String uploadVideo(String title, String description, List<String> tags, File videoFile) throws IOException {
