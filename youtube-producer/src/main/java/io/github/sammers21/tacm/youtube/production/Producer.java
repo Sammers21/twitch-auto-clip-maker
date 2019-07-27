@@ -158,8 +158,7 @@ public class Producer {
                                                 Maybe<String> maybeUpload = vertx.rxExecuteBlocking(ev -> {
                                                     try {
                                                         String title = mkYouTubeTitle(streamerToRelease, titles);
-                                                        LinkedList<String> tags = new LinkedList<>(titles);
-                                                        tags.add(streamerToRelease);
+                                                        List<String> tags = mkYouTubeTags(streamerToRelease, titles);
                                                         String videoId = youTube.uploadVideo(title, "", tags, compiledVideoFile);
                                                         ev.complete(videoId);
                                                     } catch (IOException e) {
@@ -187,6 +186,20 @@ public class Producer {
             log.error("Unknown settings type:{}", settings.getType());
             release.run();
         }
+    }
+
+    private List<String> mkYouTubeTags(String streamerToRelease, Set<String> titles) {
+        HashSet<String> tags = new HashSet<>();
+        tags.add(streamerToRelease);
+
+        for (String title : titles) {
+            Arrays.stream(title.split(""))
+                    .map(word -> word.replaceAll("[^a-zA-Zа-яА-Я]", ""))
+                    .filter(s -> !s.isEmpty())
+                    .forEach(tags::add);
+        }
+
+        return new LinkedList<>(tags);
     }
 
     private String mkYouTubeTitle(String streamerName, Set<String> titles) {
