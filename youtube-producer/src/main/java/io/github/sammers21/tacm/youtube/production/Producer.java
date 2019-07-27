@@ -67,7 +67,10 @@ public class Producer {
         if (settings instanceof SimpleIntervalCheck) {
             SimpleIntervalCheck simpleIntervalCheck = (SimpleIntervalCheck) this.settings;
             Integer maxReleasesPerDay = simpleIntervalCheck.getMaxReleasesPerDay();
-            res = releasedTodayTimes().map(todayReleased -> maxReleasesPerDay > todayReleased);
+            res = releasedTodayTimes().map(todayReleased -> {
+                log.info("today_released={}, max={}", todayReleased, maxReleasesPerDay);
+                return maxReleasesPerDay > todayReleased;
+            });
         } else {
             res = Single.just(false);
         }
