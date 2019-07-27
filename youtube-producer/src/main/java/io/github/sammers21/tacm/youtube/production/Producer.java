@@ -201,7 +201,7 @@ public class Producer {
         tags.add(streamerToRelease);
 
         for (String title : titles) {
-            Arrays.stream(title.split(""))
+            Arrays.stream(title.split(" "))
                     .map(word -> word.replaceAll("[^a-zA-Zа-яА-Я]", ""))
                     .filter(s -> !s.isEmpty())
                     .forEach(tags::add);
