@@ -80,12 +80,16 @@ public class Producer {
 
     private void releaseAttempt() {
         canRelease().subscribe(canRelease -> {
-            if (locked.compareAndSet(false, true)) {
-                log.info("production lock has been taken");
-                attemptToMakeBundle(() -> {
-                    boolean res = locked.compareAndSet(true, false);
-                    log.info("Releasing production lock={}", res);
-                });
+            if (canRelease) {
+                if (locked.compareAndSet(false, true)) {
+                    log.info("production lock has been taken");
+                    attemptToMakeBundle(() -> {
+                        boolean res = locked.compareAndSet(true, false);
+                        log.info("Releasing production lock={}", res);
+                    });
+                }
+            } else {
+                log.info("Can't release today on chan={}", youtubeChan);
             }
         }, error -> log.error("Release error", error));
         // each 5-15 minutes
