@@ -32,6 +32,7 @@ import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class YouTube {
 
@@ -92,6 +93,7 @@ public class YouTube {
     }
 
     public String uploadVideo(String title, String description, List<String> tags, File videoFile) throws IOException {
+        log.info("Uploading video with title='{}', description={}, tags={}", title, description, tags.stream().collect(Collectors.joining(",", "[", "]")));
         long fLength = videoFile.length();
         // Add extra information to the video before uploading.
         Video videoObjectDefiningMetadata = new Video();
@@ -162,7 +164,6 @@ public class YouTube {
         log.info("  - Title: " + returnedVideo.getSnippet().getTitle());
         log.info("  - Tags: " + returnedVideo.getSnippet().getTags());
         log.info("  - Privacy Status: " + returnedVideo.getStatus().getPrivacyStatus());
-        log.info("  - Video Count: " + returnedVideo.getStatistics().getViewCount());
         return returnedVideo.getId();
     }
 }

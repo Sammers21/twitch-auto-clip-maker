@@ -147,7 +147,6 @@ public class Producer {
                                                 Maybe<String> maybeUpload = vertx.rxExecuteBlocking(ev -> {
                                                     try {
                                                         String title = mkYouTubeTitle(streamerToRelease, titles);
-                                                        log.info("Video title={}", title);
                                                         LinkedList<String> tags = new LinkedList<>(titles);
                                                         tags.add(streamerToRelease);
                                                         String videoId = youTube.uploadVideo(title, "", tags, compiledVideoFile);
@@ -170,7 +169,7 @@ public class Producer {
                     .doAfterTerminate(release::run)
                     .subscribe(
                             () -> log.info("Bundle are made and available on YouTube"),
-                            err -> log.error("Bundle are not made", err)
+                            err -> log.error("Can't make a bundle", err)
                     );
 
         } else {
