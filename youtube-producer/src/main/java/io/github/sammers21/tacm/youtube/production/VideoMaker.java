@@ -64,7 +64,7 @@ public class VideoMaker {
                 })
                 .flatMapCompletable(resp -> vertx.fileSystem().rxWriteFile(pathToSave, resp.body()))
                 .doOnComplete(() -> log.info("Clip has been downloaded:'{}'", new File(pathToSave).getAbsolutePath()))
-                .delaySubscription(10, TimeUnit.SECONDS);
+                .delaySubscription(5, TimeUnit.SECONDS);
     }
 
     public Single<File> mkVideoOfClips(Collection<String> clips) {
