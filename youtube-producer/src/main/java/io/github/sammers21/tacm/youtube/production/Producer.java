@@ -22,6 +22,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -74,17 +75,23 @@ public class Producer {
     }
 
     public void runProduction() {
-        vertx.setPeriodic(10_000, event ->
-                canRelease().subscribe(canRelease -> {
-                    if (locked.compareAndSet(false, true)) {
-                        log.info("production lock has been taken");
-                        attemptToMakeBundle(() -> {
-                            boolean res = locked.compareAndSet(true, false);
-                            log.info("Releasing production lock={}", res);
-                        });
-                    }
-                }, error -> log.error("Release error", error))
-        );
+        releaseAttempt();
+    }
+
+    private void releaseAttempt() {
+        canRelease().subscribe(canRelease -> {
+            if (locked.compareAndSet(false, true)) {
+                log.info("production lock has been taken");
+                attemptToMakeBundle(() -> {
+                    boolean res = locked.compareAndSet(true, false);
+                    log.info("Releasing production lock={}", res);
+                });
+            }
+        }, error -> log.error("Release error", error));
+        // each 5-15 minutes
+        long nextAttemptIn = TimeUnit.MINUTES.toMillis(5) + rnd.nextInt(Math.toIntExact(TimeUnit.MINUTES.toMillis(10)));
+        log.info("Next release attempt will be in next {}min {}sec", TimeUnit.MILLISECONDS.toMinutes(nextAttemptIn), TimeUnit.MILLISECONDS.toSeconds(nextAttemptIn) % 60);
+        vertx.setTimer(nextAttemptIn, event -> releaseAttempt());
     }
 
     public void attemptToMakeBundle(Runnable release) {
