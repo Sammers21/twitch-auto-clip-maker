@@ -154,7 +154,7 @@ public class Producer {
                                                         ev.complete(videoId);
                                                     } catch (IOException e) {
                                                         ev.fail(e);
-                                                        log.error("unload error", e);
+                                                        log.error("upload error", e);
                                                     }
                                                 });
                                                 return maybeUpload.toSingle()

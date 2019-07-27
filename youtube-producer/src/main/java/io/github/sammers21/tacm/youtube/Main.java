@@ -1,5 +1,6 @@
 package io.github.sammers21.tacm.youtube;
 
+import com.codahale.metrics.MetricRegistry;
 import io.github.sammers21.tacm.youtube.production.Producer;
 import io.github.sammers21.tacm.youtube.production.VideoMaker;
 import io.github.sammers21.tacm.youtube.production.YouTube;
@@ -36,6 +37,8 @@ public class Main {
     private static WebClient webClient;
     private static Vertx vertx;
     private static VideoMaker vMaker;
+    private static String CARBON_HOST;
+    private static Integer CARBON_PORT;
 
     public static void main(String[] args) throws IOException, ParseException {
         vertx = Vertx.vertx(new VertxOptions()
@@ -56,6 +59,12 @@ public class Main {
         JsonObject dbCfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("db")))));
         String host = cmd.getOptionValue("host");
         File productionDir = new File(cmd.getOptionValue("pd"));
+
+        CARBON_HOST = cfg.getString("carbon_host");
+        CARBON_PORT = cfg.getInteger("carbon_port");
+        MetricRegistry metricRegistry = new MetricRegistry();
+        Utils.carbonReporting(metricRegistry, "youtube.producer", CARBON_HOST, CARBON_PORT);
+
         if (productionDir.exists() && productionDir.isDirectory()) {
             log.info("Production dir: OK");
         } else {

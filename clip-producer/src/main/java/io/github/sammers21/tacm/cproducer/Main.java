@@ -1,13 +1,7 @@
 package io.github.sammers21.tacm.cproducer;
 
 import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.graphite.Graphite;
-import com.codahale.metrics.graphite.GraphiteReporter;
-import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
-import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
-import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
 import com.github.twitch4j.TwitchClient;
 import com.github.twitch4j.TwitchClientBuilder;
@@ -31,11 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -44,10 +33,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+
+import static io.github.sammers21.twac.core.Utils.carbonReporting;
 
 
 public class Main {
@@ -120,7 +110,7 @@ public class Main {
         log.info("CLIENT_SECRET={}", CLIENT_SECRET);
         log.info("BEARER_TOKEN={}", BEARER_TOKEN);
         log.info("Channels={}", CHANNELS_TO_WATCH.stream().collect(Collectors.joining(",", "[", "]")));
-        initReporters(metricRegistry);
+        carbonReporting(metricRegistry, "twitch.chat", CARBON_HOST, CARBON_PORT);
 
         var chat = twitchClient.getChat();
         CHANNELS_TO_WATCH.forEach(chat::joinChannel);
@@ -188,22 +178,4 @@ public class Main {
         });
     }
 
-    private static void initReporters(MetricRegistry metricRegistry) throws UnknownHostException, SocketException {
-        try (final DatagramSocket socket = new DatagramSocket()) {
-            socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
-            String ip = socket.getLocalAddress().getHostAddress();
-            log.info("Reporting from IP: '{}'", ip);
-            Graphite graphite = new Graphite(new InetSocketAddress(CARBON_HOST, CARBON_PORT));
-            final GraphiteReporter reporter = GraphiteReporter.forRegistry(metricRegistry)
-                    .prefixedWith(String.format("%s.twitch.chat", ip.replace(".", "_")))
-                    .convertRatesTo(TimeUnit.SECONDS)
-                    .convertDurationsTo(TimeUnit.MILLISECONDS)
-                    .filter(MetricFilter.ALL)
-                    .build(graphite);
-            reporter.start(1, TimeUnit.SECONDS);
-            metricRegistry.register(String.format("memory"), new MemoryUsageGaugeSet());
-            metricRegistry.register(String.format("gc"), new GarbageCollectorMetricSet());
-            metricRegistry.register(String.format("thread"), new ThreadStatesGaugeSet());
-        }
-    }
 }
