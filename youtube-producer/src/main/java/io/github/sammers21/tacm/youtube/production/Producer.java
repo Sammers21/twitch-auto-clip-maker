@@ -74,7 +74,12 @@ public class Producer {
         } else {
             res = Single.just(false);
         }
-        return res.map(resBool -> resBool && locked.get());
+        return res.map(resBool -> {
+            boolean locked = this.locked.get();
+            boolean decision = resBool && locked;
+            log.info("release decision={}[locked={}, video_count]", decision, resBool);
+            return decision;
+        });
     }
 
     public void runProduction() {
