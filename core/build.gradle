@@ -16,7 +16,7 @@ dependencies {
     compile group: 'io.dropwizard.metrics', name: 'metrics-jvm', version: dropwizardVersion
 
     // twitch api 
-    compile group: 'com.github.twitch4j', name: 'twitch4j', version: '1.0.0-alpha.13'
+    compile group: 'com.github.twitch4j', name: 'twitch4j', version: '1.0.0-alpha.16'
 
     // pg client
     compile 'io.reactiverse:reactive-pg-client:0.11.4'
