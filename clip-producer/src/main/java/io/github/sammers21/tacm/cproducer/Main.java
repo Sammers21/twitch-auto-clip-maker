@@ -140,7 +140,7 @@ public class Main {
         channelToWatch.forEach(chan -> {
             viewersByChan.put(chan, new AtomicInteger(0));
             LastMessagesStorage storage = new LastMessagesStorage(2 * 60_000);
-            new ShortIntervalDecisionEngine(vertx.getDelegate(), chan, storage, streams);
+            new ShortIntervalDecisionEngine(vertx.getDelegate(), chan, storage, streams).startDecisionEngine();
             storageByChan.put(chan, storage);
         });
     }
