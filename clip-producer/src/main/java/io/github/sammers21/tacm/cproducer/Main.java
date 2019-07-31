@@ -6,6 +6,7 @@ import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
 import com.github.twitch4j.TwitchClient;
 import com.github.twitch4j.TwitchClientBuilder;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
+import io.github.sammers21.tacm.cproducer.decision.ShortIntervalDecisionEngine;
 import io.github.sammers21.twac.core.Streams;
 import io.github.sammers21.twac.core.Utils;
 import io.github.sammers21.twac.core.db.DbController;
@@ -139,7 +140,7 @@ public class Main {
         channelToWatch.forEach(chan -> {
             viewersByChan.put(chan, new AtomicInteger(0));
             LastMessagesStorage storage = new LastMessagesStorage(2 * 60_000);
-            new ClipMakingDecisionEngine(vertx.getDelegate(), chan, storage, streams);
+            new ShortIntervalDecisionEngine(vertx.getDelegate(), chan, storage, streams);
             storageByChan.put(chan, storage);
         });
     }

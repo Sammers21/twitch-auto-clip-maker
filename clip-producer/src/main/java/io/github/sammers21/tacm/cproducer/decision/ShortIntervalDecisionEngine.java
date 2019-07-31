@@ -1,59 +1,27 @@
-package io.github.sammers21.tacm.cproducer;
+package io.github.sammers21.tacm.cproducer.decision;
 
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
+import io.github.sammers21.tacm.cproducer.LastMessagesStorage;
 import io.github.sammers21.twac.core.Streams;
 import io.vertx.core.Vertx;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
-public class ClipMakingDecisionEngine {
+public class ShortIntervalDecisionEngine extends DecisionEngine {
 
-    private final Logger log;
-    private final String streamerName;
-    private final LastMessagesStorage lms;
-    private final Streams streams;
-    private final AtomicLong lastClipOnMillis = new AtomicLong(0);
 
-    public ClipMakingDecisionEngine(Vertx vertx, String streamerName, LastMessagesStorage lms, Streams streams) {
-        log = LoggerFactory.getLogger(String.format("%s:[%s]", ClipMakingDecisionEngine.class.getName(), streamerName));
-        this.streamerName = streamerName;
-        this.lms = lms;
-        this.streams = streams;
-        log.info("Will make decisions in 2 mins");
-        vertx.setTimer(TimeUnit.MINUTES.toMillis(2), timer -> {
-            log.info("Start making decisions");
-            vertx.setPeriodic(3_000, event -> {
-                try {
-                    if (streams.isOnline(streamerName) && makeDecision()) {
-                        streams.createClipOnChannel(streamerName)
-                                .subscribe(
-                                        ok -> {
-                                            log.info("Clip created");
-                                            lastClipOnMillis.set(System.currentTimeMillis());
-                                        },
-                                        throwable -> log.error("Unable to create a clip:", throwable)
-                                );
-                    }
-                } catch (NoSuchElementException e) {
-                    log.error("NLP");
-                } catch (Throwable t) {
-                    log.error("Unexpected exception", t);
-                }
-            });
-        });
+    public ShortIntervalDecisionEngine(Vertx vertx, String streamerName, LastMessagesStorage lms, Streams streams) {
+        super(vertx, streamerName, lms, streams);
     }
 
-    private boolean makeDecision() {
+    @Override
+    public boolean makeDecision() {
         int intervalMinutes = 2;
         long intervalMillis = TimeUnit.MINUTES.toMillis(intervalMinutes);
         List<ChannelMessageEvent> channelMessageEvents = lms.lastMessages(Math.toIntExact(intervalMillis))
