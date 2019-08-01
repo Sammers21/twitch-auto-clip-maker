@@ -4,8 +4,8 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
 import com.github.twitch4j.TwitchClient;
-import com.github.twitch4j.TwitchClientBuilder;
 import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
+import io.github.sammers21.tacm.cproducer.chat.TwitchChatClient;
 import io.github.sammers21.tacm.cproducer.decision.ShortIntervalDecisionEngine;
 import io.github.sammers21.twac.core.Streams;
 import io.github.sammers21.twac.core.Utils;
@@ -56,7 +56,7 @@ public class Main {
     private static final Map<String, LastMessagesStorage> storageByChan = new ConcurrentHashMap<>();
     private static Vertx vertx;
     private static WebClient webClient;
-    private static TwitchClient twitchClient;
+//    private static TwitchClient twitchClient;
     private static DbController dbController;
     private static Streams streams;
     public static String VERSION;
@@ -89,12 +89,12 @@ public class Main {
         vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(CHANNELS_TO_WATCH.size()));
         webClient = WebClient.create(vertx);
         var credential = new OAuth2Credential("twitch", TOKEN);
-        twitchClient = TwitchClientBuilder.builder()
-                .withEnableChat(true)
-                .withEnableTMI(true)
-                .withEnableHelix(true)
-                .withChatAccount(credential)
-                .build();
+//        twitchClient = TwitchClientBuilder.builder()
+//                .withEnableChat(true)
+//                .withEnableTMI(true)
+//                .withEnableHelix(true)
+//                .withChatAccount(credential)
+//                .build();
 
         BEARER_TOKEN.set(dbController.token().blockingGet());
         log.info("User token form DB:'{}'", BEARER_TOKEN.get());
@@ -113,10 +113,13 @@ public class Main {
         log.info("Channels={}", CHANNELS_TO_WATCH.stream().collect(Collectors.joining(",", "[", "]")));
         carbonReporting(metricRegistry, "twitch.chat", CARBON_HOST, CARBON_PORT);
 
-        var chat = twitchClient.getChat();
-        CHANNELS_TO_WATCH.forEach(chat::joinChannel);
-        reportMetrics(CHANNELS_TO_WATCH, vertx, metricRegistry, twitchClient);
-        intiServer();
+//        var chat = twitchClient.getChat();
+//        CHANNELS_TO_WATCH.forEach(chat::joinChannel);
+//        reportMetrics(CHANNELS_TO_WATCH, vertx, metricRegistry, twitchClient);
+
+        TwitchChatClient twitchChatClient = new TwitchChatClient(TOKEN, "sammers21");
+        twitchChatClient.start();
+        CHANNELS_TO_WATCH.forEach(twitchChatClient::joinChannel);
     }
 
     private static void intiServer() {
