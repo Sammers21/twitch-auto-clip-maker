@@ -2,11 +2,14 @@ package io.github.sammers21.tacm.cproducer.chat;
 
 
 import io.vertx.core.Handler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
 
 public class TwitchChatClient {
 
+    private static final Logger log = LoggerFactory.getLogger(TwitchChatClient.class);
     public static final String IRC_HOST = "irc.chat.twitch.tv";
     public static final Integer IRC_PORT = 6667;
 
@@ -21,10 +24,16 @@ public class TwitchChatClient {
         this.nickName = nickName;
         tcpTextClient = new TcpTextClient(IRC_HOST, IRC_PORT);
         tcpTextClient.outputHandler(event -> {
+            if (event.equals("PING :tmi.twitch.tv")) {
+                tcpTextClient.input("PONG :tmi.twitch.tv");
+                log.info("PING PONG OK");
+                return;
+            }
             if (event.endsWith(">") && countDownLatch.getCount() == 1) {
                 countDownLatch.countDown();
+                log.info("Input can be started");
+                return;
             }
-            System.out.println("EVENT: " + event);
             if (handler != null) {
                 ChatMessage parse = ChatMessage.parse(event);
                 if (parse != null) {
@@ -36,8 +45,8 @@ public class TwitchChatClient {
 
     public void start() {
         tcpTextClient.start();
-        tcpTextClient.input(String.format("PASS oauth:%s\n", oauthToken));
-        tcpTextClient.input(String.format("NICK %s\n", nickName));
+        tcpTextClient.input(String.format("PASS oauth:%s", oauthToken));
+        tcpTextClient.input(String.format("NICK %s", nickName));
     }
 
     public void stop() {
@@ -54,6 +63,6 @@ public class TwitchChatClient {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        tcpTextClient.input(String.format("JOIN #%s\n", chan));
+        tcpTextClient.input(String.format("JOIN #%s", chan));
     }
 }

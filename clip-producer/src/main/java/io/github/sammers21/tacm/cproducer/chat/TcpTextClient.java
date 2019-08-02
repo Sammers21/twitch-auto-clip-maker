@@ -17,8 +17,6 @@ import io.vertx.core.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.CountDownLatch;
-
 public class TcpTextClient {
 
     private static final Logger log = LoggerFactory.getLogger(TcpTextClient.class);
@@ -27,7 +25,6 @@ public class TcpTextClient {
     private Handler<String> outputHandler;
     private NioEventLoopGroup group;
     private ChannelFuture channel;
-    private CountDownLatch cdl;
 
     public TcpTextClient(String host, Integer port) {
         this.host = host;
@@ -40,7 +37,7 @@ public class TcpTextClient {
 
     public void input(String text) {
         log.info(text);
-        channel.channel().writeAndFlush(text);
+        channel.channel().writeAndFlush(text + "\n");
     }
 
     public void start() {
@@ -61,15 +58,14 @@ public class TcpTextClient {
 
                 pipeline.addLast(new SimpleChannelInboundHandler<String>() {
                     @Override
-                    protected void channelRead0(ChannelHandlerContext ctx, String msg) throws Exception {
-                        log.info("New message");
+                    protected void channelRead0(ChannelHandlerContext ctx, String msg) {
                         if (outputHandler != null) {
                             outputHandler.handle(msg);
                         }
                     }
 
                     @Override
-                    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+                    public void channelActive(ChannelHandlerContext ctx) {
                         log.info("Channel active");
                     }
                 });
