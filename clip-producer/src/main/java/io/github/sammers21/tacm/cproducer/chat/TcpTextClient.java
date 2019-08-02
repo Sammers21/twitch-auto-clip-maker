@@ -1,6 +1,8 @@
 package io.github.sammers21.tacm.cproducer.chat;
 
 
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
@@ -17,6 +19,8 @@ import io.vertx.core.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.charset.StandardCharsets;
+
 public class TcpTextClient {
 
     private static final Logger log = LoggerFactory.getLogger(TcpTextClient.class);
@@ -25,6 +29,7 @@ public class TcpTextClient {
     private Handler<String> outputHandler;
     private NioEventLoopGroup group;
     private ChannelFuture channel;
+    private MetricRegistry metricRegistry;
 
     public TcpTextClient(String host, Integer port) {
         this.host = host;
@@ -59,6 +64,10 @@ public class TcpTextClient {
                 pipeline.addLast(new SimpleChannelInboundHandler<String>() {
                     @Override
                     protected void channelRead0(ChannelHandlerContext ctx, String msg) {
+                        if (metricRegistry != null) {
+                            Meter bytes = metricRegistry.meter("total.bytes");
+                            bytes.mark(msg.getBytes(StandardCharsets.UTF_8).length);
+                        }
                         if (outputHandler != null) {
                             outputHandler.handle(msg);
                         }
@@ -80,5 +89,9 @@ public class TcpTextClient {
 
     public void stop() {
         group.shutdownGracefully();
+    }
+
+    public void setMetricRegistry(MetricRegistry metricRegistry) {
+        this.metricRegistry = metricRegistry;
     }
 }

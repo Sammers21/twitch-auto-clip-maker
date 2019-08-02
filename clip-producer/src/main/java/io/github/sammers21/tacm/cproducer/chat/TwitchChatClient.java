@@ -1,6 +1,7 @@
 package io.github.sammers21.tacm.cproducer.chat;
 
 
+import com.codahale.metrics.MetricRegistry;
 import io.vertx.core.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +20,7 @@ public class TwitchChatClient {
     private final TcpTextClient tcpTextClient;
     private Handler<ChatMessage> handler;
     private final CountDownLatch countDownLatch = new CountDownLatch(1);
+    private MetricRegistry metricRegistry;
 
     public TwitchChatClient(String oauthToken, String nickName) {
         this.oauthToken = oauthToken;
@@ -67,5 +69,10 @@ public class TwitchChatClient {
             e.printStackTrace();
         }
         tcpTextClient.input(String.format("JOIN #%s", chan));
+    }
+
+    public void setMetricRegistry(MetricRegistry metricRegistry) {
+        this.metricRegistry = metricRegistry;
+        tcpTextClient.setMetricRegistry(metricRegistry);
     }
 }
