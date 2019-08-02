@@ -148,6 +148,8 @@ public class Main {
         twitchChatClient.messageHandler(msg -> {
             String channelName = msg.getChanName();
             Meter messagesPerSec = metricRegistry.meter(String.format("channel.%s.messages", channelName));
+            Meter totalMessagesPerSec = metricRegistry.meter("total.messages");
+            totalMessagesPerSec.mark();
             messagesPerSec.mark();
             LastMessagesStorage lastMessagesStorage = storageByChan.get(channelName);
             if (lastMessagesStorage == null) {
