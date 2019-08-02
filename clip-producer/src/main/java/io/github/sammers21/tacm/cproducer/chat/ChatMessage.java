@@ -1,5 +1,7 @@
 package io.github.sammers21.tacm.cproducer.chat;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -10,18 +12,20 @@ public class ChatMessage {
     private final String text;
     private final String chanName;
     private final String author;
+    private final Instant receivedAt;
 
-    public ChatMessage(String text, String chanName, String author) {
+    public ChatMessage(String text, String chanName, String author, Instant receivedAt) {
         this.text = text;
         this.chanName = chanName;
         this.author = author;
+        this.receivedAt = receivedAt;
     }
 
     public static ChatMessage parse(String line) {
         Matcher matcher = MSG_PATTERN.matcher(line);
         boolean found = matcher.find();
-        if(found){
-            return new ChatMessage(matcher.group(3), matcher.group(2), matcher.group(1));
+        if (found) {
+            return new ChatMessage(matcher.group(3), matcher.group(2), matcher.group(1), Instant.now(Clock.systemUTC()));
         } else {
             return null;
         }
@@ -39,12 +43,7 @@ public class ChatMessage {
         return author;
     }
 
-    public static void main(String[] args) {
-        String s = ":realisee19!realisee19@realisee19.tmi.twitch.tv PRIVMSG #icebergdoto :@fooonshin походу у тебя нет,что ты просто высераешь рофлы тупые";
-        Matcher matcher = MSG_PATTERN.matcher(s);
-        boolean b = matcher.find();
-        System.out.println(matcher.group(1));
-        System.out.println(matcher.group(2));
-        System.out.println(matcher.group(3));
+    public Instant getReceivedAt() {
+        return receivedAt;
     }
 }

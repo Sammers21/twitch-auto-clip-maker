@@ -1,6 +1,6 @@
 package io.github.sammers21.tacm.cproducer;
 
-import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
+import io.github.sammers21.tacm.cproducer.chat.ChatMessage;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -13,23 +13,23 @@ import java.util.stream.Collectors;
 public class LastMessagesStorage {
 
     private final int storeMessagesForTheLastMillis;
-    private final LinkedList<ChannelMessageEvent> messages = new LinkedList<>();
+    private final LinkedList<ChatMessage> messages = new LinkedList<>();
 
     public LastMessagesStorage(int storeMessagesForTheLastMillis) {
         this.storeMessagesForTheLastMillis = storeMessagesForTheLastMillis;
     }
 
-    public synchronized void push(ChannelMessageEvent messageEvent) {
+    public synchronized void push(ChatMessage messageEvent) {
         removeExpired();
         messages.push(messageEvent);
     }
 
-    public synchronized List<ChannelMessageEvent> lastMessages(Integer periodOfTime) {
+    public synchronized List<ChatMessage> lastMessages(Integer periodOfTime) {
         removeExpired();
         final long now = Instant.now().toEpochMilli();
         return messages.stream()
                 .filter(channelMessageEvent ->
-                        (now - channelMessageEvent.getFiredAt().toInstant().toEpochMilli()) < periodOfTime
+                        (now - channelMessageEvent.getReceivedAt().toEpochMilli()) < periodOfTime
                 )
                 .collect(Collectors.toList());
     }
@@ -37,7 +37,7 @@ public class LastMessagesStorage {
     private synchronized void removeExpired() {
         long now = Instant.now().toEpochMilli();
         while (messages.size() != 0 &&
-                messages.peekLast().getFiredAt().toInstant().toEpochMilli() < now - storeMessagesForTheLastMillis) {
+                messages.peekLast().getReceivedAt().toEpochMilli() < now - storeMessagesForTheLastMillis) {
             messages.removeLast();
         }
     }
@@ -47,11 +47,11 @@ public class LastMessagesStorage {
     }
 
     private synchronized Double customIndex(Integer periodOfTime, Function<String, Integer> countProcedure) {
-        List<ChannelMessageEvent> strings = lastMessages(periodOfTime);
+        List<ChatMessage> strings = lastMessages(periodOfTime);
         int messageCount = strings.size();
         if (messageCount != 0) {
             Integer reducedMessages = strings.stream()
-                    .map(ChannelMessageEvent::getMessage)
+                    .map(ChatMessage::getText)
                     .map(countProcedure).reduce(Integer::sum).get();
             return Double.valueOf(reducedMessages) / (double) messageCount;
         } else {
@@ -64,11 +64,11 @@ public class LastMessagesStorage {
     }
 
     public synchronized Double spamUniqIndex(Integer periodOfTime) {
-        List<ChannelMessageEvent> strings = lastMessages(periodOfTime);
+        List<ChatMessage> strings = lastMessages(periodOfTime);
         int messageCount = strings.size();
         if (messageCount != 0) {
             final Set<String> collected = strings.stream()
-                    .map(ChannelMessageEvent::getMessage)
+                    .map(ChatMessage::getText)
                     .map(msg -> Arrays.stream(msg.split("\\s+")))
                     .flatMap(stringStream -> stringStream)
                     .collect(Collectors.toSet());
