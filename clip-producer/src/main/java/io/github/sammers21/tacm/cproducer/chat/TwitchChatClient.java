@@ -5,6 +5,7 @@ import io.vertx.core.Handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 
 public class TwitchChatClient {
@@ -37,6 +38,8 @@ public class TwitchChatClient {
             if (handler != null) {
                 ChatMessage parse = ChatMessage.parse(event);
                 if (parse != null) {
+                    Objects.requireNonNull(handler);
+                    Objects.requireNonNull(parse);
                     handler.handle(parse);
                 }
             }

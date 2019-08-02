@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 
 public class ChatMessage {
 
-    public static Pattern MSG_PATTERN = Pattern.compile(":(.+)!.+@.+ PRIVMSG #(.+) :(.+)");
+    public static Pattern MSG_PATTERN = Pattern.compile(":(.+)!.+@.+ PRIVMSG #(\\S+) :(.+)");
 
     private final String text;
     private final String chanName;
@@ -23,7 +23,7 @@ public class ChatMessage {
 
     public static ChatMessage parse(String line) {
         Matcher matcher = MSG_PATTERN.matcher(line);
-        boolean found = matcher.find();
+        boolean found = matcher.matches();
         if (found) {
             return new ChatMessage(matcher.group(3), matcher.group(2), matcher.group(1), Instant.now(Clock.systemUTC()));
         } else {

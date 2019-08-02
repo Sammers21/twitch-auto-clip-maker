@@ -116,7 +116,6 @@ public class Main {
         twitchChatClient.start();
         CHANNELS_TO_WATCH.forEach(twitchChatClient::joinChannel);
         reportMetrics(CHANNELS_TO_WATCH, vertx, metricRegistry, twitchChatClient);
-
     }
 
     private static void intiServer() {
@@ -151,6 +150,9 @@ public class Main {
             Meter messagesPerSec = metricRegistry.meter(String.format("channel.%s.messages", channelName));
             messagesPerSec.mark();
             LastMessagesStorage lastMessagesStorage = storageByChan.get(channelName);
+            if (lastMessagesStorage == null) {
+                log.info(channelName);
+            }
             lastMessagesStorage.push(msg);
         });
 

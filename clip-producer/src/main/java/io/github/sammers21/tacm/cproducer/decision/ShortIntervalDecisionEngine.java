@@ -1,7 +1,7 @@
 package io.github.sammers21.tacm.cproducer.decision;
 
-import com.github.twitch4j.chat.events.channel.ChannelMessageEvent;
 import io.github.sammers21.tacm.cproducer.LastMessagesStorage;
+import io.github.sammers21.tacm.cproducer.chat.ChatMessage;
 import io.github.sammers21.twac.core.Streams;
 import io.vertx.core.Vertx;
 
@@ -25,14 +25,14 @@ public class ShortIntervalDecisionEngine extends DecisionEngine {
     public boolean makeDecision() {
         int intervalMinutes = 2;
         long intervalMillis = TimeUnit.MINUTES.toMillis(intervalMinutes);
-        List<ChannelMessageEvent> channelMessageEvents = lms.lastMessages(Math.toIntExact(intervalMillis))
+        List<ChatMessage> channelMessageEvents = lms.lastMessages(Math.toIntExact(intervalMillis))
                 .stream()
-                .filter(channelMessageEvent -> !channelMessageEvent.getMessage().startsWith("!"))
-                .filter(channelMessageEvent -> !channelMessageEvent.getMessage().contains("#drop"))
-                .filter(channelMessageEvent -> !channelMessageEvent.getMessage().contains("#дроп"))
+                .filter(channelMessageEvent -> !channelMessageEvent.getText().startsWith("!"))
+                .filter(channelMessageEvent -> !channelMessageEvent.getText().contains("#drop"))
+                .filter(channelMessageEvent -> !channelMessageEvent.getText().contains("#дроп"))
                 .collect(Collectors.toList());
         // msg per 10 seconds
-        Map<Long, List<ChannelMessageEvent>> grouped = channelMessageEvents.stream().collect(Collectors.groupingBy(channelMessageEvent -> channelMessageEvent.getFiredAt().toInstant().getEpochSecond() / 10));
+        Map<Long, List<ChatMessage>> grouped = channelMessageEvents.stream().collect(Collectors.groupingBy(channelMessageEvent -> channelMessageEvent.getReceivedAt().getEpochSecond() / 10));
 
         long now = System.currentTimeMillis() / 10_000;
         long minDefault = now - (intervalMillis / 10_000);
@@ -52,7 +52,7 @@ public class ShortIntervalDecisionEngine extends DecisionEngine {
         Long maxAfterRemove = grouped.keySet().stream().max(Long::compareTo).get();
         Long minAfterRemove = grouped.keySet().stream().min(Long::compareTo).get();
 
-        List<Map.Entry<Long, List<ChannelMessageEvent>>> sortedList = grouped.entrySet().stream().sorted(Comparator.comparingLong(Map.Entry::getKey)).collect(Collectors.toList());
+        List<Map.Entry<Long, List<ChatMessage>>> sortedList = grouped.entrySet().stream().sorted(Comparator.comparingLong(Map.Entry::getKey)).collect(Collectors.toList());
 
         double minRm = (double) grouped.get(minAfterRemove).size() / 10d;
         boolean minRateLimit = minRm > 0.35d;
@@ -62,8 +62,8 @@ public class ShortIntervalDecisionEngine extends DecisionEngine {
         int increases = 0;
         int decreases = 0;
 
-        Map.Entry<Long, List<ChannelMessageEvent>> lastEntry = null;
-        for (Map.Entry<Long, List<ChannelMessageEvent>> entry : sortedList) {
+        Map.Entry<Long, List<ChatMessage>> lastEntry = null;
+        for (Map.Entry<Long, List<ChatMessage>> entry : sortedList) {
             if (lastEntry != null) {
                 if (entry.getValue().size() > lastEntry.getValue().size()) {
                     increases++;
