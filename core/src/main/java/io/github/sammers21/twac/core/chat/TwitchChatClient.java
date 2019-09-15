@@ -1,4 +1,4 @@
-package io.github.sammers21.tacm.cproducer.chat;
+package io.github.sammers21.twac.core.chat;
 
 
 import com.codahale.metrics.MetricRegistry;

@@ -1,4 +1,4 @@
-package io.github.sammers21.tacm.cproducer.chat;
+package io.github.sammers21.twac.core.chat;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -9,9 +9,9 @@ public class ChatMessage {
 
     public static Pattern MSG_PATTERN = Pattern.compile(":(.+)!.+@.+ PRIVMSG #(\\S+) :(.+)");
 
-    private final String text;
-    private final String chanName;
-    private final String author;
+    private final String  text;
+    private final String  chanName;
+    private final String  author;
     private final Instant receivedAt;
 
     public ChatMessage(String text, String chanName, String author, Instant receivedAt) {

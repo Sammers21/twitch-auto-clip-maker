@@ -1,6 +1,6 @@
 package io.github.sammers21.tacm.cproducer;
 
-import io.github.sammers21.tacm.cproducer.chat.ChatMessage;
+import io.github.sammers21.twac.core.chat.ChatMessage;
 
 import java.time.Instant;
 import java.util.Arrays;

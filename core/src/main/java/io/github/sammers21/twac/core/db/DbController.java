@@ -1,13 +1,8 @@
 package io.github.sammers21.twac.core.db;
 
+import io.github.sammers21.twac.core.chat.ChatMessage;
 import io.reactiverse.pgclient.PgPoolOptions;
-import io.reactiverse.reactivex.pgclient.PgClient;
-import io.reactiverse.reactivex.pgclient.PgConnection;
-import io.reactiverse.reactivex.pgclient.PgIterator;
-import io.reactiverse.reactivex.pgclient.PgPool;
-import io.reactiverse.reactivex.pgclient.PgRowSet;
-import io.reactiverse.reactivex.pgclient.Row;
-import io.reactiverse.reactivex.pgclient.Tuple;
+import io.reactiverse.reactivex.pgclient.*;
 import io.reactivex.Completable;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
@@ -18,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -180,6 +176,21 @@ public class DbController {
                 return Maybe.empty();
             }
         });
+    }
+
+    public Completable insertChatMessage(ChatMessage message, boolean isHighlight, String sessionId) {
+        return pgClient.rxPreparedQuery(
+                "insert into chat_message(text, twitch_channel_name, author, received_at, is_highlight, record_session)\n" +
+                        "values ($1, $2, $3, $4, $5, $6)",
+                Tuple.of(message.getText(), message.getChanName(), message.getAuthor(), message.getReceivedAt().atOffset(ZoneOffset.UTC).toLocalDateTime(), isHighlight, sessionId)
+        ).ignoreElement();
+    }
+
+    public Single<Long> deleteSession(String sessionId) {
+        return pgClient.rxPreparedQuery(
+                "WITH deleted AS (delete from chat_message where record_session = $1 returning *) SELECT count(*) as d FROM deleted;",
+                Tuple.of(sessionId)
+        ).map(rows -> rows.iterator().next().getLong("d"));
     }
 
     public KV kv(String id) {
