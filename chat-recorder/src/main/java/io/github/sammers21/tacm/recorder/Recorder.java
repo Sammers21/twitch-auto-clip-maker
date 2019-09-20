@@ -61,14 +61,22 @@ public class Recorder {
                 case "h":
                     highLight(true);
                     break;
+                case "s":
+                case "stat":
+                case "state":
+                    state();
+                    break;
+                case "st":
                 case "strt":
                 case "start":
                     start();
                     break;
+                case "sp":
                 case "stp":
                 case "stop":
                     stop();
                     break;
+                case "d":
                 case "f":
                 case "fuck":
                     deleteSession(session.get());
@@ -78,6 +86,10 @@ public class Recorder {
                     break;
             }
         }
+    }
+
+    private static void state() {
+        log.info("msg_cnt={}, session={}, highlight={}, rec={}", msgThisSession.get(), session, isHighLight.get(), rec.get());
     }
 
     private static void deleteSession(String sessionId) throws InterruptedException {
@@ -96,15 +108,13 @@ public class Recorder {
 
     private static void stop() throws InterruptedException {
         rec.set(false);
-        isHighLight.set(false);
         Thread.sleep(500);
         log.info("Recorded during session messages={}", msgThisSession.get());
     }
 
     private static void start() {
-        log.info("Start recording");
         rec.set(true);
-        isHighLight.set(false);
+        log.info("Start recording");
         session.set(RandomStringUtils.randomAlphanumeric(5));
         msgThisSession.set(0);
     }

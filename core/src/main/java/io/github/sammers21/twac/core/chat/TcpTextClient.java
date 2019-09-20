@@ -52,7 +52,7 @@ public class TcpTextClient {
             protected void initChannel(SocketChannel ch) throws Exception {
                 ChannelPipeline pipeline = ch.pipeline();
 
-                pipeline.addLast(new LineBasedFrameDecoder(501));
+                pipeline.addLast(new LineBasedFrameDecoder(700));
 
                 pipeline.addLast(new StringDecoder());
                 pipeline.addLast(new StringEncoder());
