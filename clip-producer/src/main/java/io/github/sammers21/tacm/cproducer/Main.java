@@ -3,14 +3,11 @@ package io.github.sammers21.tacm.cproducer;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
-import com.github.twitch4j.TwitchClient;
-import com.github.twitch4j.TwitchClientBuilder;
 import io.github.sammers21.tacm.cproducer.decision.ShortIntervalDecisionEngine;
 import io.github.sammers21.twac.core.Streams;
 import io.github.sammers21.twac.core.Utils;
 import io.github.sammers21.twac.core.chat.TwitchChatClient;
 import io.github.sammers21.twac.core.db.DbController;
-import io.vertx.core.Future;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.Vertx;
@@ -24,7 +21,10 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -48,7 +48,6 @@ public class Main {
     private static final Map<String, LastMessagesStorage> storageByChan = new ConcurrentHashMap<>();
     private static Vertx vertx;
     private static WebClient webClient;
-    private static TwitchClient twitchClient;
     private static DbController dbController;
     private static Streams streams;
     public static String VERSION;
@@ -81,15 +80,9 @@ public class Main {
         vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(CHANNELS_TO_WATCH.size()));
         webClient = WebClient.create(vertx);
         var credential = new OAuth2Credential("twitch", TOKEN);
-        twitchClient = TwitchClientBuilder.builder()
-                .withEnableTMI(true)
-                .withEnableHelix(true)
-                .withChatAccount(credential)
-                .build();
-
         BEARER_TOKEN.set(dbController.token().blockingGet());
         log.info("User token form DB:'{}'", BEARER_TOKEN.get());
-        streams = new Streams(vertx, dbController, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 30_000, metricRegistry);
+        streams = new Streams(vertx, dbController, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 5_000, metricRegistry);
         streams.enableStreamsInfo();
 
         initStoragesAndViewersCounter(CHANNELS_TO_WATCH);
@@ -151,21 +144,8 @@ public class Main {
             lastMessagesStorage.push(msg);
         });
 
-        vertx.setPeriodic(30_000, periodic -> {
-            channelToWatch.forEach(chan -> {
-                vertx.getDelegate().executeBlocking((Future<Integer> event) -> {
-                    Integer viewerCount = twitchClient.getMessagingInterface().getChatters(chan).execute().getViewerCount();
-                    event.complete(viewerCount);
-                }, event -> {
-                    Integer viewerCount = event.result();
-                    Objects.requireNonNull(viewerCount);
-                    viewersByChan.get(chan).set(viewerCount);
-                });
-            });
-        });
-
         channelToWatch.forEach(chan -> {
-            metricRegistry.gauge(String.format("channel.%s.viewers", chan), () -> () -> viewersByChan.get(chan).get());
+            metricRegistry.gauge(String.format("channel.%s.viewers", chan), () -> () -> streams.viewersOnStream(chan));
             List.of(1, 2, 3, 4, 5, 6).stream().map(integer -> integer * 5_000).forEach(integer -> {
                 final int metricNum = integer / 1000;
                 metricRegistry.gauge(String.format("channel.%s.lenIndex.%d", chan, metricNum), () -> () -> storageByChan.get(chan).lenIndex(integer));

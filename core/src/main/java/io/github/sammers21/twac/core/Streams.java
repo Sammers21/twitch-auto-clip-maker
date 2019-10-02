@@ -110,6 +110,15 @@ public class Streams {
                 }));
     }
 
+    public synchronized int viewersOnStream(String channelName) {
+        JsonObject stremerInfo = streamersAndInfo.get(channelName);
+        if (stremerInfo == null) {
+            return 0;
+        } else {
+            return stremerInfo.getInteger("viewer_count");
+        }
+    }
+
     public synchronized boolean isOnline(String channelName) {
         return streamersAndInfo.get(channelName) != null;
     }
