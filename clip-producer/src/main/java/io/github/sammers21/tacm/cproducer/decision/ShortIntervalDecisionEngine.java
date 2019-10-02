@@ -1,6 +1,7 @@
 package io.github.sammers21.tacm.cproducer.decision;
 
 import io.github.sammers21.tacm.cproducer.LastMessagesStorage;
+import io.github.sammers21.twac.core.Channel;
 import io.github.sammers21.twac.core.Streams;
 import io.github.sammers21.twac.core.chat.ChatMessage;
 import io.vertx.core.Vertx;
@@ -13,8 +14,8 @@ import java.util.stream.LongStream;
 public class ShortIntervalDecisionEngine extends DecisionEngine {
 
 
-    public ShortIntervalDecisionEngine(Vertx vertx, String streamerName, LastMessagesStorage lms, Streams streams) {
-        super(vertx, streamerName, lms, streams);
+    public ShortIntervalDecisionEngine(Vertx vertx, Channel chan, LastMessagesStorage lms, Streams streams) {
+        super(vertx, chan, lms, streams);
     }
 
     @Override
@@ -98,8 +99,8 @@ public class ShortIntervalDecisionEngine extends DecisionEngine {
             log.info("Start making decisions");
             vertx.setPeriodic(3_000, event -> {
                 try {
-                    if (streams.isOnline(streamerName) && makeDecision()) {
-                        streams.createClipOnChannel(streamerName)
+                    if (streams.isOnline(channel.getName()) && makeDecision()) {
+                        streams.createClipOnChannel(channel.getName())
                                 .subscribe(
                                         ok -> {
                                             log.info("Clip created");

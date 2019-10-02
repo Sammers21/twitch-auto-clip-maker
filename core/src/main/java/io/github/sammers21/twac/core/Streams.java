@@ -24,7 +24,7 @@ public class Streams {
     private final WebClient webClient;
     private final String clientId;
     private final String bearerToken;
-    private final Set<String> channelsToWatch;
+    private final Set<Channel> channelsToWatch;
     private final Integer updateEachMillis;
     private final MetricRegistry metricRegistry;
 
@@ -33,7 +33,7 @@ public class Streams {
                    WebClient webClient,
                    String clientId,
                    String bearerToken,
-                   Set<String> channelsToWatch,
+                   Set<Channel> channelsToWatch,
                    Integer updateEachMillis,
                    MetricRegistry metricRegistry) {
 
@@ -65,7 +65,7 @@ public class Streams {
             synchronized (this) {
                 streamersAndInfo = streamsInfo;
             }
-            log.info("Fetched:{}, total:{}", streamersAndInfo.size(), channelsToWatch.size());
+            log.info("Live:{}, total:{}", streamersAndInfo.size(), channelsToWatch.size());
         }).ignoreElement();
     }
 
@@ -75,7 +75,7 @@ public class Streams {
                 .addQueryParam("first", String.valueOf(100))
                 .addQueryParam("token", bearerToken);
         channelsToWatch.forEach(chan -> {
-            infoRequest.addQueryParam("user_login", chan);
+            infoRequest.addQueryParam("user_login", chan.getName());
         });
         return infoRequest;
     }

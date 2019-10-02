@@ -4,11 +4,13 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
 import io.github.sammers21.tacm.cproducer.decision.ShortIntervalDecisionEngine;
+import io.github.sammers21.twac.core.Channel;
 import io.github.sammers21.twac.core.Streams;
 import io.github.sammers21.twac.core.Utils;
 import io.github.sammers21.twac.core.chat.TwitchChatClient;
 import io.github.sammers21.twac.core.db.DbController;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.http.HttpServer;
@@ -21,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +44,7 @@ public class Main {
     private static Integer CARBON_PORT;
     private static int HTTP_PORT;
     private static String TOKEN;
-    private static Set<String> CHANNELS_TO_WATCH;
+    private static Set<Channel> CHANNELS_TO_WATCH;
     private static final Map<String, AtomicInteger> viewersByChan = new ConcurrentHashMap<>();
     private static final Map<String, LastMessagesStorage> storageByChan = new ConcurrentHashMap<>();
     private static Vertx vertx;
@@ -69,7 +70,8 @@ public class Main {
         CLIENT_ID = cfg.getString("client_id");
         CLIENT_SECRET = cfg.getString("client_secret");
         HTTP_PORT = cfg.getInteger("http_port");
-        CHANNELS_TO_WATCH = Arrays.stream(cfg.getString("streamers").split(",")).collect(Collectors.toSet());
+        JsonArray streamers = cfg.getJsonArray("streamers");
+        CHANNELS_TO_WATCH = streamers.stream().map(o -> (JsonObject) o).map(entries -> entries.mapTo(Channel.class)).collect(Collectors.toSet());
         if (CHANNELS_TO_WATCH.size() == 0) {
             throw new IllegalStateException("No channels to watch");
         }
@@ -94,12 +96,11 @@ public class Main {
         log.info("CLIENT_ID={}", CLIENT_ID);
         log.info("CLIENT_SECRET={}", CLIENT_SECRET);
         log.info("BEARER_TOKEN={}", BEARER_TOKEN);
-        log.info("Channels={}", CHANNELS_TO_WATCH.stream().collect(Collectors.joining(",", "[", "]")));
         carbonReporting(metricRegistry, "twitch.chat", CARBON_HOST, CARBON_PORT);
 
         TwitchChatClient twitchChatClient = new TwitchChatClient(TOKEN, "sammers21");
         twitchChatClient.start();
-        CHANNELS_TO_WATCH.forEach(twitchChatClient::joinChannel);
+        CHANNELS_TO_WATCH.stream().map(Channel::getName).forEach(twitchChatClient::joinChannel);
         reportMetrics(CHANNELS_TO_WATCH, vertx, metricRegistry, twitchChatClient);
         twitchChatClient.setMetricRegistry(metricRegistry);
     }
@@ -121,16 +122,16 @@ public class Main {
         });
     }
 
-    private static void initStoragesAndViewersCounter(Set<String> channelToWatch) {
+    private static void initStoragesAndViewersCounter(Set<Channel> channelToWatch) {
         channelToWatch.forEach(chan -> {
-            viewersByChan.put(chan, new AtomicInteger(0));
+            viewersByChan.put(chan.getName(), new AtomicInteger(0));
             LastMessagesStorage storage = new LastMessagesStorage(2 * 60_000);
             new ShortIntervalDecisionEngine(vertx.getDelegate(), chan, storage, streams).startDecisionEngine();
-            storageByChan.put(chan, storage);
+            storageByChan.put(chan.getName(), storage);
         });
     }
 
-    private static void reportMetrics(Set<String> channelToWatch, Vertx vertx, MetricRegistry metricRegistry, TwitchChatClient twitchChatClient) {
+    private static void reportMetrics(Set<Channel> channelToWatch, Vertx vertx, MetricRegistry metricRegistry, TwitchChatClient twitchChatClient) {
         twitchChatClient.messageHandler(msg -> {
             String channelName = msg.getChanName();
             Meter messagesPerSec = metricRegistry.meter(String.format("channel.%s.messages", channelName));
@@ -144,13 +145,14 @@ public class Main {
             lastMessagesStorage.push(msg);
         });
 
-        channelToWatch.forEach(chan -> {
-            metricRegistry.gauge(String.format("channel.%s.viewers", chan), () -> () -> streams.viewersOnStream(chan));
+        channelToWatch.forEach(channel -> {
+            String channelName = channel.getName();
+            metricRegistry.gauge(String.format("channel.%s.viewers", channelName), () -> () -> streams.viewersOnStream(channelName));
             List.of(1, 2, 3, 4, 5, 6).stream().map(integer -> integer * 5_000).forEach(integer -> {
                 final int metricNum = integer / 1000;
-                metricRegistry.gauge(String.format("channel.%s.lenIndex.%d", chan, metricNum), () -> () -> storageByChan.get(chan).lenIndex(integer));
-                metricRegistry.gauge(String.format("channel.%s.uniqWordsIndex.%d", chan, metricNum), () -> () -> storageByChan.get(chan).uniqWordsIndex(integer));
-                metricRegistry.gauge(String.format("channel.%s.spamUniqIndex.%d", chan, metricNum), () -> () -> storageByChan.get(chan).spamUniqIndex(integer));
+                metricRegistry.gauge(String.format("channel.%s.lenIndex.%d", channelName, metricNum), () -> () -> storageByChan.get(channelName).lenIndex(integer));
+                metricRegistry.gauge(String.format("channel.%s.uniqWordsIndex.%d", channelName, metricNum), () -> () -> storageByChan.get(channelName).uniqWordsIndex(integer));
+                metricRegistry.gauge(String.format("channel.%s.spamUniqIndex.%d", channelName, metricNum), () -> () -> storageByChan.get(channelName).spamUniqIndex(integer));
             });
         });
     }
