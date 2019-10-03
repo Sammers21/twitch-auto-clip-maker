@@ -12,8 +12,6 @@ import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.Vertx;
-import io.vertx.reactivex.core.http.HttpServer;
-import io.vertx.reactivex.ext.web.Router;
 import io.vertx.reactivex.ext.web.client.WebClient;
 import org.apache.commons.cli.*;
 import org.slf4j.Logger;
@@ -101,23 +99,6 @@ public class Main {
         CHANNELS_TO_WATCH.stream().map(Channel::getName).forEach(twitchChatClient::joinChannel);
         reportMetrics(CHANNELS_TO_WATCH, vertx, metricRegistry, twitchChatClient);
         twitchChatClient.setMetricRegistry(metricRegistry);
-    }
-
-    private static void intiServer() {
-        final HttpServer httpServer = vertx.createHttpServer();
-        final Router router = Router.router(vertx);
-        router.route("/").handler(event -> {
-            final String path = event.request().path();
-            log.info("Path:{}", path);
-            event.response().end("OK");
-        });
-        httpServer.requestHandler(router).listen(HTTP_PORT, event -> {
-            if (event.succeeded()) {
-                log.info("Http server started on port:{}", HTTP_PORT);
-            } else {
-                log.error("Cant start http server on port:{}", HTTP_PORT);
-            }
-        });
     }
 
     private static void initStoragesAndViewersCounter(Set<Channel> channelToWatch) {
