@@ -2,7 +2,6 @@ package io.github.sammers21.tacm.cproducer;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
-import com.github.philippheuer.credentialmanager.domain.OAuth2Credential;
 import io.github.sammers21.tacm.cproducer.decision.ShortIntervalDecisionEngine;
 import io.github.sammers21.twac.core.Channel;
 import io.github.sammers21.twac.core.Streams;
@@ -81,7 +80,6 @@ public class Main {
 
         vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(CHANNELS_TO_WATCH.size()));
         webClient = WebClient.create(vertx);
-        var credential = new OAuth2Credential("twitch", TOKEN);
         BEARER_TOKEN.set(dbController.token().blockingGet());
         log.info("User token form DB:'{}'", BEARER_TOKEN.get());
         streams = new Streams(vertx, dbController, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 5_000, metricRegistry);

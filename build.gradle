@@ -1,4 +1,4 @@
-allprojects {
+subprojects {
     repositories {
         jcenter()
         maven { url "https://oss.jfrog.org/artifactory/libs-release" }
