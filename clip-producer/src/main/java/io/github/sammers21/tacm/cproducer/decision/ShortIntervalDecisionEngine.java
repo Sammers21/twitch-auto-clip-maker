@@ -53,7 +53,7 @@ public class ShortIntervalDecisionEngine extends DecisionEngine {
         double minRm = (double) grouped.get(minAfterRemove).size() / 10d;
         boolean minRateLimit = minRm > 0.35d;
         double rateChangeRatio = (double) grouped.get(maxAfterRemove).size() / (double) grouped.get(minAfterRemove).size();
-        boolean rateIncrease = rateChangeRatio > 3d;
+        boolean rateIncrease = rateChangeRatio > 5d;
 
         int increases = 0;
         int decreases = 0;
