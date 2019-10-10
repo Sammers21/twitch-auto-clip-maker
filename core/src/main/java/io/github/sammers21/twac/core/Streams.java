@@ -9,6 +9,7 @@ import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.core.buffer.Buffer;
 import io.vertx.reactivex.ext.web.client.HttpRequest;
 import io.vertx.reactivex.ext.web.client.WebClient;
+import org.javacord.api.DiscordApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +21,7 @@ public class Streams {
     private static final Logger log = LoggerFactory.getLogger(Streams.class);
     private Map<String, JsonObject> streamersAndInfo = new ConcurrentHashMap<>();
     private Vertx vertx;
-    private DiscordBot discordBot;
+    private DiscordApi discordBot;
     private final DbController dbController;
     private final WebClient webClient;
     private final String clientId;
@@ -30,7 +31,7 @@ public class Streams {
     private final MetricRegistry metricRegistry;
 
     public Streams(Vertx vertx,
-                   DiscordBot discordBot,
+                   DiscordApi discordBot,
                    DbController dbController,
                    WebClient webClient,
                    String clientId,
@@ -107,6 +108,12 @@ public class Streams {
         }).doOnSuccess(ok ->
                 dbController.insertClip(ok, channelName, userId, json.getString("title"))
                         .subscribe(() -> {
+                            discordBot.getServersByName("Сычи")
+                                    .iterator()
+                                    .next()
+                                    .getTextChannelsByName("клипы")
+                                    .get(0)
+                                    .sendMessage(String.format("Новый клип на канале `%s`. Link: %s", channelName, ok));
                             metricRegistry.meter(String.format("channel.%s.createClip", channelName)).mark();
                             log.info("Clip is in the database");
                         }, error -> {
