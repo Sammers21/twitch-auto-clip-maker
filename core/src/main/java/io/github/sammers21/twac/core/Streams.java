@@ -113,7 +113,7 @@ public class Streams {
                                     .next()
                                     .getTextChannelsByName("клипы")
                                     .get(0)
-                                    .sendMessage(String.format("Новый клип на канале `%s`. Link: %s", channelName, ok));
+                                    .sendMessage(String.format("Новый клип на канале `%s`. Link: https://clips.twitch.tv/%s", channelName, ok));
                             metricRegistry.meter(String.format("channel.%s.createClip", channelName)).mark();
                             log.info("Clip is in the database");
                         }, error -> {
