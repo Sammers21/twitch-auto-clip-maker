@@ -4,6 +4,7 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import io.github.sammers21.tacm.cproducer.decision.ShortIntervalDecisionEngine;
 import io.github.sammers21.twac.core.Channel;
+import io.github.sammers21.twac.core.DiscordBot;
 import io.github.sammers21.twac.core.Streams;
 import io.github.sammers21.twac.core.Utils;
 import io.github.sammers21.twac.core.chat.TwitchChatClient;
@@ -17,6 +18,7 @@ import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -49,6 +51,7 @@ public class Main {
     private static DbController dbController;
     private static Streams streams;
     public static String VERSION;
+    private static DiscordBot discordBot;
 
     public static void main(String[] args) throws IOException, ParseException {
         VERSION = Utils.version();
@@ -72,6 +75,8 @@ public class Main {
         if (CHANNELS_TO_WATCH.size() == 0) {
             throw new IllegalStateException("No channels to watch");
         }
+        discordBot = new DiscordBot("NjMxOTUyNzQwMDk2MTQ3NDk0.XZ-Wcg.slvHO99rAcWcdzaIKZU8IXnt7ks");
+        discordBot.start();
 
         MetricRegistry metricRegistry = new MetricRegistry();
         dbController = new DbController(dbCfg, VERSION);
@@ -80,7 +85,7 @@ public class Main {
         webClient = WebClient.create(vertx);
         BEARER_TOKEN.set(dbController.token().blockingGet());
         log.info("User token form DB:'{}'", BEARER_TOKEN.get());
-        streams = new Streams(vertx, dbController, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 5_000, metricRegistry);
+        streams = new Streams(vertx, discordBot, dbController, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 5_000, metricRegistry);
         streams.enableStreamsInfo();
 
         initStoragesAndViewersCounter(CHANNELS_TO_WATCH);

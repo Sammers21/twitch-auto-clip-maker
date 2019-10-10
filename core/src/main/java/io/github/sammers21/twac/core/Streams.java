@@ -20,6 +20,7 @@ public class Streams {
     private static final Logger log = LoggerFactory.getLogger(Streams.class);
     private Map<String, JsonObject> streamersAndInfo = new ConcurrentHashMap<>();
     private Vertx vertx;
+    private DiscordBot discordBot;
     private final DbController dbController;
     private final WebClient webClient;
     private final String clientId;
@@ -29,6 +30,7 @@ public class Streams {
     private final MetricRegistry metricRegistry;
 
     public Streams(Vertx vertx,
+                   DiscordBot discordBot,
                    DbController dbController,
                    WebClient webClient,
                    String clientId,
@@ -38,6 +40,7 @@ public class Streams {
                    MetricRegistry metricRegistry) {
 
         this.vertx = vertx;
+        this.discordBot = discordBot;
         this.dbController = dbController;
         this.webClient = webClient;
         this.clientId = clientId;
@@ -101,13 +104,14 @@ public class Streams {
             JsonObject arg = resp.bodyAsJsonObject();
             log.info("Clip endpoint response:\n{}", arg.encodePrettily());
             return arg.getJsonArray("data").getJsonObject(0).getString("id");
-        }).doOnSuccess(ok -> dbController.insertClip(ok, channelName, userId, json.getString("title"))
-                .subscribe(() -> {
-                    metricRegistry.meter(String.format("channel.%s.createClip", channelName)).mark();
-                    log.info("Clip is in the database");
-                }, error -> {
-                    log.error("Unable to insert a clip", error);
-                }));
+        }).doOnSuccess(ok ->
+                dbController.insertClip(ok, channelName, userId, json.getString("title"))
+                        .subscribe(() -> {
+                            metricRegistry.meter(String.format("channel.%s.createClip", channelName)).mark();
+                            log.info("Clip is in the database");
+                        }, error -> {
+                            log.error("Unable to insert a clip", error);
+                        }));
     }
 
     public synchronized int viewersOnStream(String channelName) {
