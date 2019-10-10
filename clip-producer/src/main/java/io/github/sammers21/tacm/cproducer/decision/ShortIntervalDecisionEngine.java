@@ -20,8 +20,7 @@ public class ShortIntervalDecisionEngine extends DecisionEngine {
 
     @Override
     public boolean makeDecision() {
-        int intervalMinutes = 2;
-        long intervalMillis = TimeUnit.MINUTES.toMillis(intervalMinutes);
+        long intervalMillis = TimeUnit.SECONDS.toMillis(60);
         List<ChatMessage> channelMessageEvents = lms.lastMessages(Math.toIntExact(intervalMillis))
                 .stream()
                 .filter(channelMessageEvent -> !channelMessageEvent.getText().startsWith("!"))
