@@ -8,4 +8,4 @@
  */
 
 rootProject.name = 'twitch-auto-clip-maker'
-include 'youtube-producer', 'core', 'clip-producer', 'chat-recorder', 'frontend'
+include 'youtube-producer', 'core', 'clip-producer', 'chat-recorder'

@@ -105,7 +105,7 @@ public class Main {
         TwitchChatClient twitchChatClient = new TwitchChatClient(TOKEN, "sammers21");
         twitchChatClient.start();
         CHANNELS_TO_WATCH.stream().map(Channel::getName).forEach(twitchChatClient::joinChannel);
-        reportMetrics(CHANNELS_TO_WATCH, vertx, metricRegistry, twitchChatClient);
+        reportMetrics(CHANNELS_TO_WATCH, metricRegistry, twitchChatClient);
         twitchChatClient.setMetricRegistry(metricRegistry);
     }
 
@@ -118,7 +118,7 @@ public class Main {
         });
     }
 
-    private static void reportMetrics(Set<Channel> channelToWatch, Vertx vertx, MetricRegistry metricRegistry, TwitchChatClient twitchChatClient) {
+    private static void reportMetrics(Set<Channel> channelToWatch, MetricRegistry metricRegistry, TwitchChatClient twitchChatClient) {
         twitchChatClient.messageHandler(msg -> {
             String channelName = msg.getChanName();
             Meter messagesPerSec = metricRegistry.meter(String.format("channel.%s.messages", channelName));
@@ -127,9 +127,10 @@ public class Main {
             messagesPerSec.mark();
             LastMessagesStorage lastMessagesStorage = storageByChan.get(channelName);
             if (lastMessagesStorage == null) {
-                log.info(channelName);
+                log.error("Last message storage is null for chan:{}", channelName);
+            } else {
+                lastMessagesStorage.push(msg);
             }
-            lastMessagesStorage.push(msg);
         });
 
         channelToWatch.forEach(channel -> {
