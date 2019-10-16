@@ -42,12 +42,17 @@ public class ShortIntervalDecisionEngine extends DecisionEngine {
             grouped.computeIfAbsent(l, aLong -> new LinkedList<>());
         });
 
-        grouped.remove(max);
-        grouped.remove(min);
+        // determine who is max and min one more time
+        Long max2 = grouped.keySet().stream().max(Long::compareTo).get();
+        Long min2 = grouped.keySet().stream().min(Long::compareTo).get();
+
+        grouped.remove(max2);
+        grouped.remove(min2);
 
         Long maxAfterRemove = grouped.keySet().stream().max(Long::compareTo).get();
         Long minAfterRemove = grouped.keySet().stream().min(Long::compareTo).get();
 
+        // sorted list of pairs <timestamp/10 sec --> messages in this 10sec window >
         List<Map.Entry<Long, List<ChatMessage>>> sortedList = grouped.entrySet().stream().sorted(Comparator.comparingLong(Map.Entry::getKey)).collect(Collectors.toList());
 
         double minRm = (double) grouped.get(minAfterRemove).size() / 10d;
@@ -73,7 +78,7 @@ public class ShortIntervalDecisionEngine extends DecisionEngine {
         boolean increaseQuorum = increases > decreases;
         long timeDif = System.currentTimeMillis() - lastClipOnMillis.get();
         boolean clipMakingLimit = timeDif > TimeUnit.MINUTES.toMillis(1);
-        boolean resultedDecision = increaseQuorum && minRateLimit && rateIncrease && clipMakingLimit;
+        boolean resultedDecision = increaseQuorum && minRateLimit && (rateIncrease ) && clipMakingLimit;
         log.info("Decision[{}] explained: increaseQuorum={}[inc={},dec={}], minRateLimit={}[{}], rateIncrease={}[{}], clipMakingLimit={}[sec={},mins={}], groupSize={}",
                 resultedDecision,
                 increaseQuorum,
