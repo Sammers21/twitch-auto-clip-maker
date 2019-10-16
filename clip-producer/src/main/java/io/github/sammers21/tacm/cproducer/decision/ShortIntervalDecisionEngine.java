@@ -6,7 +6,10 @@ import io.github.sammers21.twac.core.Streams;
 import io.github.sammers21.twac.core.chat.ChatMessage;
 import io.vertx.core.Vertx;
 
-import java.util.*;
+import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -94,31 +97,5 @@ public class ShortIntervalDecisionEngine extends DecisionEngine {
                 sortedList.size()
         );
         return resultedDecision;
-    }
-
-    @Override
-    public void startDecisionEngine() {
-        log.info("Will make decisions in 2 mins");
-        vertx.setTimer(TimeUnit.MINUTES.toMillis(2), timer -> {
-            log.info("Start making decisions");
-            vertx.setPeriodic(3_000, event -> {
-                try {
-                    if (streams.isOnline(channel.getName()) && makeDecision()) {
-                        streams.createClipOnChannel(channel.getName())
-                                .subscribe(
-                                        ok -> {
-                                            log.info("Clip created");
-                                            lastClipOnMillis.set(System.currentTimeMillis());
-                                        },
-                                        throwable -> log.error("Unable to create a clip:", throwable)
-                                );
-                    }
-                } catch (NoSuchElementException e) {
-                    log.error("NLP");
-                } catch (Throwable t) {
-                    log.error("Unexpected exception", t);
-                }
-            });
-        });
     }
 }

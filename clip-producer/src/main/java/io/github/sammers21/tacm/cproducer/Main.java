@@ -2,6 +2,7 @@ package io.github.sammers21.tacm.cproducer;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import io.github.sammers21.tacm.cproducer.decision.LastMsgFirstDecisionEngine;
 import io.github.sammers21.tacm.cproducer.decision.ShortIntervalDecisionEngine;
 import io.github.sammers21.twac.core.Channel;
 import io.github.sammers21.twac.core.Streams;
@@ -72,7 +73,18 @@ public class Main {
         CLIENT_SECRET = cfg.getString("client_secret");
         HTTP_PORT = cfg.getInteger("http_port");
         JsonArray streamers = cfg.getJsonArray("streamers");
-        CHANNELS_TO_WATCH = streamers.stream().map(o -> (JsonObject) o).map(entries -> entries.mapTo(Channel.class)).collect(Collectors.toSet());
+        CHANNELS_TO_WATCH = streamers.stream()
+                .map(o -> (JsonObject) o)
+                .map(entries -> entries.mapTo(Channel.class))
+                // set default engine
+                .map(channel -> {
+                    String currentEngine = channel.getEngine();
+                    if (currentEngine == null) {
+                        channel.setEngine(ShortIntervalDecisionEngine.class.getSimpleName());
+                    }
+                    return channel;
+                })
+                .collect(Collectors.toSet());
         if (CHANNELS_TO_WATCH.size() == 0) {
             throw new IllegalStateException("No channels to watch");
         }
@@ -113,7 +125,15 @@ public class Main {
         channelToWatch.forEach(chan -> {
             viewersByChan.put(chan.getName(), new AtomicInteger(0));
             LastMessagesStorage storage = new LastMessagesStorage(2 * 60_000);
-            new ShortIntervalDecisionEngine(vertx.getDelegate(), chan, storage, streams).startDecisionEngine();
+            switch (chan.getEngine()) {
+                case "LastMsgFirstDecisionEngine":
+                    new LastMsgFirstDecisionEngine(vertx.getDelegate(), chan, storage, streams).startDecisionEngine();
+                    break;
+                case "ShortIntervalDecisionEngine":
+                default:
+                    new ShortIntervalDecisionEngine(vertx.getDelegate(), chan, storage, streams).startDecisionEngine();
+                    break;
+            }
             storageByChan.put(chan.getName(), storage);
         });
     }
