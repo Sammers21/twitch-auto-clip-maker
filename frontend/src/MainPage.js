@@ -2,7 +2,7 @@ import React from 'react';
 
 function MainPage() {
     return (
-        <p>MAIN PAGE</p>
+        <p>YOU ARE LOGGED IN</p>
     );
 }
 
