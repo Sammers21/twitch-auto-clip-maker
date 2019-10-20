@@ -1,0 +1,47 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+mainClassName = 'io.github.sammers21.tacm.server.Main'
+
+dependencies {
+    compile project(":core")
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+}
+
+jar {
+    into('webroot') {
+        from("$rootDir/http-server/webroot").collect()
+    }
+    from configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    manifest {
+        attributes 'Main-Class': mainClassName
+    }
+    archiveBaseName = "server"
+}
+
+task copyWeb(type: Copy) {
+    from "$rootDir/frontend/build"
+    into "$rootDir/http-server/webroot"
+
+    doLast {
+        println "Frontend has been copied"
+    }
+}
+
+task buildStaticFront(type: Exec) {
+    workingDir "$rootDir/frontend"
+    commandLine 'npm', 'run', 'build'
+    standardOutput = new ByteArrayOutputStream()
+    ext.output = {
+        return standardOutput.toString()
+    }
+    doLast {
+        println standardOutput.toString()
+        println "Frontend has been built"
+    }
+}
+
+tasks.copyWeb.dependsOn(buildStaticFront)
+tasks.jar.dependsOn(copyWeb)

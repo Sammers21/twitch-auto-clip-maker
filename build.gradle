@@ -1,4 +1,13 @@
 subprojects {
+    apply {
+        plugin 'idea'
+    }
+    idea {
+        module {
+            downloadJavadoc = true
+        }
+    }
+
     repositories {
         jcenter()
         maven { url "https://oss.jfrog.org/artifactory/libs-release" }
