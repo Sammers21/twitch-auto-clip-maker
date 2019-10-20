@@ -2,8 +2,10 @@ package io.github.sammers21.tacm.server;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.reactivex.core.Vertx;
+import io.vertx.reactivex.core.http.HttpServerRequest;
 import io.vertx.reactivex.ext.web.Cookie;
 import io.vertx.reactivex.ext.web.Router;
+import io.vertx.reactivex.ext.web.handler.CookieHandler;
 import io.vertx.reactivex.ext.web.handler.StaticHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,12 +14,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class Server {
     private static final Logger log = LoggerFactory.getLogger(Server.class);
 
     private final String INDEX_HTML_PAGE;
-    private final String TWITCH_KEY_COOKIE = "twitch-key";
+    private final String TWITCH_CODE_COOKIE = "twitch_code";
+    private final String TWITCH_SCOPE_COOKIE = "twitch_scope";
 
     private final Vertx vertx;
     private final Integer port;
@@ -45,8 +50,9 @@ public class Server {
 
     public void start() {
         Router router = Router.router(vertx);
+        router.route().handler(CookieHandler.create());
         router.get("/").handler(ctx -> {
-            var cookie = ctx.getCookie(TWITCH_KEY_COOKIE);
+            var cookie = ctx.getCookie(TWITCH_CODE_COOKIE);
             if (cookie == null) {
                 ctx.response().setStatusCode(303).putHeader(HttpHeaders.LOCATION, "/login").end();
             } else {
@@ -54,13 +60,20 @@ public class Server {
             }
         });
         router.get("/redirect-from-twitch").handler(ctx -> {
+            HttpServerRequest request = ctx.request();
+            String params = request.params().entries().stream().map(e -> String.format("%s: %s", e.getKey(), e.getValue())).collect(Collectors.joining("; ", "[", "]"));
+            log.info("PATH:{}, PARAMS:{}", request.path(), params);
 
-            ctx.addCookie(Cookie.cookie(TWITCH_KEY_COOKIE, "123"))
+            ctx
+                    .addCookie(Cookie.cookie(TWITCH_CODE_COOKIE, request.getParam("code")).setPath("/").setMaxAge(TimeUnit.DAYS.toSeconds(10)))
+                    .addCookie(Cookie.cookie(TWITCH_SCOPE_COOKIE, request.getParam("scope")).setPath("/").setMaxAge(TimeUnit.DAYS.toSeconds(10)))
                     .response()
-                    .setStatusCode(303).putHeader(HttpHeaders.LOCATION, "/").end();
+                    .setStatusCode(303)
+                    .putHeader(HttpHeaders.LOCATION, "/")
+                    .end();
         });
         router.get("/login").handler(ctx -> {
-            var cookie = ctx.getCookie(TWITCH_KEY_COOKIE);
+            var cookie = ctx.getCookie(TWITCH_CODE_COOKIE);
             if (cookie == null) {
                 ctx.response().end(INDEX_HTML_PAGE);
             } else {
