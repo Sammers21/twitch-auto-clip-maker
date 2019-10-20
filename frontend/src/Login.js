@@ -1,8 +1,8 @@
 import React from 'react';
-import './App.css';
+import './Login.css';
 import './twitch-button.css';
 
-function App() {
+function Login() {
     return (
         <div className="App">
             <header className="App-header">
@@ -19,4 +19,4 @@ function App() {
     );
 }
 
-export default App;
+export default Login;

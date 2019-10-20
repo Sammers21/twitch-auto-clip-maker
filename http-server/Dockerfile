@@ -10,7 +10,7 @@ COPY youtube-producer/build.gradle $BUILD_HOME/youtube-producer/
 RUN gradle compileJava --info
 COPY . ./
 RUN cd http-server \
-    && PUBLIC_URL=http://static.clip-maker.com:81 gradle jar --info \
+    && gradle jar --info \
     && mkdir /app \
     && cp build/libs/server.jar /app
 
