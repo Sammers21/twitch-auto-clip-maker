@@ -2,6 +2,7 @@ package io.github.sammers21.tacm.server;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.reactivex.core.Vertx;
+import io.vertx.reactivex.ext.web.Cookie;
 import io.vertx.reactivex.ext.web.Router;
 import io.vertx.reactivex.ext.web.handler.StaticHandler;
 import org.slf4j.Logger;
@@ -52,7 +53,12 @@ public class Server {
                 ctx.response().end(INDEX_HTML_PAGE);
             }
         });
+        router.get("/redirect-from-twitch").handler(ctx -> {
 
+            ctx.addCookie(Cookie.cookie(TWITCH_KEY_COOKIE, "123"))
+                    .response()
+                    .setStatusCode(303).putHeader(HttpHeaders.LOCATION, "/").end();
+        });
         router.get("/login").handler(ctx -> {
             var cookie = ctx.getCookie(TWITCH_KEY_COOKIE);
             if (cookie == null) {
