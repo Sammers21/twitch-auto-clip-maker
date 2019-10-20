@@ -3,7 +3,17 @@
 
 # Ignore Gradle build output directory
 build
-/src/main/resources/version.txt
+version.txt
 *.txt
 *.mp4
 webroot
+.project
+*.log
+twitch-clip-maker.log.txt
+*.iml
+.idea
+out
+build
+.settings
+.vscode
+.classpath
