@@ -1,22 +1,38 @@
 .App {
-  text-align: center;
+    text-align: center;
 }
 
 .App-logo {
-  height: 40vmin;
+    height: 40vmin;
 }
 
 .App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+    background-color: #282c34;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(10px + 2vmin);
+    color: black;
 }
 
 .App-link {
-  color: #09d3ac;
+    color: #09d3ac;
+}
+
+#sign-in-window {
+    background-color: white;
+    border-radius: 3%;
+    padding: 10%;
+}
+
+#twitch-login-text {
+    font-size: 20px;
+}
+
+#twitch-button {
+    text-align: center;
+    padding: 0px 100px 0px 100px;
+    border-radius: 5%;
 }
