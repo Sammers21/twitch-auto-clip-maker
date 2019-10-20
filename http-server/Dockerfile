@@ -1,6 +1,13 @@
 FROM alpine as build
 RUN apk add --no-cache --upgrade nodejs nodejs-npm openjdk11 gradle --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community
-WORKDIR /build-dir
+ENV BUILD_HOME=/build-dir
+WORKDIR $BUILD_HOME
+COPY build.gradle settings.gradle gradle.properties $BUILD_HOME/
+COPY core/build.gradle $BUILD_HOME/core/
+COPY http-server/build.gradle $BUILD_HOME/http-server/
+COPY chat-recorder/build.gradle $BUILD_HOME/chat-recorder/
+COPY youtube-producer/build.gradle $BUILD_HOME/youtube-producer/
+RUN gradle compileJava --info
 COPY . ./
 RUN cd http-server \
     && PUBLIC_URL=http://static.clip-maker.com:81 gradle jar --info \
