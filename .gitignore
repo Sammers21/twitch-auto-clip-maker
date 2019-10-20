@@ -6,3 +6,4 @@ build
 /src/main/resources/version.txt
 *.txt
 *.mp4
+webroot
