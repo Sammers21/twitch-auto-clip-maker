@@ -11,7 +11,6 @@ dependencies {
     compile group: 'io.vertx', name: 'vertx-web', version: vertxVersion
     compile group: 'io.vertx', name: 'vertx-web-client', version: vertxVersion
     compile group: 'io.vertx', name: 'vertx-rx-java2', version: vertxVersion
-    compile group: 'io.vertx', name: 'vertx-auth-oauth2', version: vertxVersion
 
     // metrics 
     compile group: 'io.dropwizard.metrics', name: 'metrics-core', version: dropwizardVersion
