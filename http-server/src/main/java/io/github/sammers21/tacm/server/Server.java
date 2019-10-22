@@ -25,7 +25,7 @@ public class Server {
     private final String TWITCH_CLIENT_ID = "vb3b4l61t5i2af2svkksagbxuxm26x";
     private final String TWITCH_CLIENT_SECRET_CODE = "n3xq72l2ro9y458znf6b8dnadcucnh";
     private final String INDEX_HTML_PAGE;
-    private final String TWITCH_ACCESS_TOKEN_COOKIE = "twitch_code";
+    private final String TWITCH_ACCESS_TOKEN_COOKIE = "access_token";
     private final String TWITCH_REFRESH_TOKEN_COOKIE = "refresh_token";
     private final String TWITCH_SCOPE_COOKIE = "twitch_scope";
 
@@ -45,8 +45,10 @@ public class Server {
         Router router = Router.router(vertx);
         router.route().handler(CookieHandler.create());
         router.get("/").handler(ctx -> {
-            var cookie = ctx.getCookie(TWITCH_ACCESS_TOKEN_COOKIE);
-            if (cookie == null) {
+            if (ctx.getCookie(TWITCH_ACCESS_TOKEN_COOKIE) == null
+                    || ctx.getCookie(TWITCH_REFRESH_TOKEN_COOKIE) == null
+                    || ctx.getCookie(TWITCH_SCOPE_COOKIE) == null
+            ) {
                 ctx.response().setStatusCode(303).putHeader(HttpHeaders.LOCATION, "/login").end();
             } else {
                 ctx.response().end(INDEX_HTML_PAGE);
