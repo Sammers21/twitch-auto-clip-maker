@@ -1,0 +1,28 @@
+version: '3.1'
+
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: vqjPvaNtQGuuSZy6hfNZPCHvKA2v1afoMSly2qvTTclpUjQOjMRRNAv2WDIKVvcc
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+
+  graphite:
+    image: graphiteapp/graphite-statsd
+    container_name: graphite
+    restart: always
+    ports:
+      - 8080:8080
+      - 2003-2004:2003-2004
+      - 2023-2024:2023-2024
+      - 8125:8125/udp
+      - 8126:8126
+    volumes:
+      - graphitedata:/opt/graphite/storage/whisper
+volumes:
+  pgdata:
+  graphitedata:

@@ -17,4 +17,5 @@ RUN cd http-server \
 FROM azul/zulu-openjdk-alpine:11
 COPY --from=build /app /app
 EXPOSE 80
-ENTRYPOINT java -jar /app/server.jar 80
+ENTRYPOINT java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 \
+                -jar /app/server.jar 80

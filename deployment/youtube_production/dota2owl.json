@@ -1,0 +1,19 @@
+{
+  "installed": {
+    "client_id": "10882850230-arf94p1iaiv882hi3mudq4faprvo9k8n.apps.googleusercontent.com",
+    "client_secret": "N6ejQFxJxKAzwvltuDzRd7oL"
+  },
+  "youtube_production": {
+    "youtube_chan": "dota2owl",
+    "clips_from_channels": [
+      "dota2ruhub",
+      "dota2ti_ru"
+    ],
+    "production_settings": {
+      "type": "SIMPLE_INTERVAL_CHECK",
+      "max_releases_per_day": 1,
+      "max_clips_per_release": 60,
+      "min_clips_per_release": 15
+    }
+  }
+}
