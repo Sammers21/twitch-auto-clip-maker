@@ -5,13 +5,13 @@ h3 {
 #main-page {
   background: white;
 }
+
 .nav-elem {
   float: right;
   list-style-type: none;
-  height: 50%;
-  width: auto;
+  height: auto;
+  width: 9%;
   padding: calc(0.1% + 10px);
-
 }
 
 nav {
@@ -26,6 +26,5 @@ nav {
 
 
 #profile-img {
-  border-radius: 30%;
-  /*height: calc(100% - 30px);*/
+  border-radius: 26%;
 }
