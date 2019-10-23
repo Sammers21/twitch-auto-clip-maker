@@ -1,15 +1,41 @@
 import React from 'react';
 import Cookies from 'js-cookie'
 import './MainPage.css'
+import axios from 'axios'
 
-function MainPage() {
-    return (
-        <div>
-            <h3>ACCESS_TOKEN={Cookies.get("access_token")}</h3>
-            <h3>REFRESH_TOKEN={Cookies.get("refresh_token")}</h3>
-            <h3>SCOPE={Cookies.get("twitch_scope")}</h3>
-        </div>
-    );
+
+class MainPage extends React.Component {
+    constructor(x) {
+        super(x);
+        this.state = {
+            username: 'USER_NAME',
+            email: 'EMAIL'
+        };
+        this.loadState();
+    }
+
+    loadState() {
+        axios.get('https://api.twitch.tv/helix/users', {
+                headers: {Authorization: "Bearer " + Cookies.get("access_token")}
+            }
+        )
+            .then(response => {
+                console.log(response);
+                this.setState({username: response.data.data[0].login})
+            })
+    }
+
+    render() {
+        return (
+            <div>
+                <h3>ACCESS_TOKEN={Cookies.get("access_token")}</h3>
+                <h3>REFRESH_TOKEN={Cookies.get("refresh_token")}</h3>
+                <h3>SCOPE={Cookies.get("twitch_scope")}</h3>
+                <h3>USERNAME={this.state.username}</h3>
+                <h3>EMAIL={this.state.email}</h3>
+            </div>
+        );
+    }
 }
 
 export default MainPage;
