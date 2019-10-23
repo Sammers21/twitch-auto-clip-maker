@@ -6,10 +6,14 @@ h3 {
   background: white;
 }
 
+
 .nav-elem {
   float: right;
   list-style-type: none;
-  padding-left: 0;
+  height: 100%;
+  width: auto;
+  padding: calc(0.1% + 10px);
+
 }
 
 nav {
@@ -21,9 +25,4 @@ nav {
   border-style: solid;
   border-color: coral;
   padding: auto;
-}
-
-ol {
-  list-style-type: none;
-  padding-left: 0;
 }

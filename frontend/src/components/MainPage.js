@@ -39,12 +39,10 @@ class MainPage extends React.Component {
         return (
             <div id="main-page">
                 <nav class="border-colored ">
-                    <ol>
-                        <li class="nav-elem border-colored "><img id="profile-img" src={this.state.profile_image_url}
-                                                                  alt="Profile pic"/></li>
-                        <li class="nav-elem border-colored "><p>{this.state.username}</p></li>
-                        <li class="nav-elem border-colored "><p>{this.state.email}</p></li>
-                    </ol>
+                    <img class="nav-elem border-colored " id="profile-img" src={this.state.profile_image_url}
+                         alt="Profile pic"/>
+                    <p class="nav-elem border-colored ">{this.state.username}</p>
+                    <p class="nav-elem border-colored ">{this.state.email}</p>
                 </nav>
                 <h3>ACCESS_TOKEN={this.state.access_token}</h3>
                 <h3>REFRESH_TOKEN={this.state.refresh_token}</h3>
