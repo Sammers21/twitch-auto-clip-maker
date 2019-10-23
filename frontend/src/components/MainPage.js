@@ -21,7 +21,11 @@ class MainPage extends React.Component {
         )
             .then(response => {
                 console.log(response);
-                this.setState({username: response.data.data[0].login})
+                this.setState(
+                    {
+                        username: response.data.data[0].login,
+                        email: response.data.data[0].email
+                    })
             })
     }
 
