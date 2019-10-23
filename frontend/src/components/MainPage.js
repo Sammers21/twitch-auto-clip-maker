@@ -8,6 +8,9 @@ class MainPage extends React.Component {
     constructor(x) {
         super(x);
         this.state = {
+            access_token: Cookies.get("access_token"),
+            refresh_token: Cookies.get("refresh_token"),
+            twitch_scope: Cookies.get("twitch_scope"),
             username: 'USER_NAME',
             email: 'EMAIL'
         };
@@ -23,6 +26,7 @@ class MainPage extends React.Component {
                 console.log(response);
                 this.setState(
                     {
+                        ...this.state,
                         username: response.data.data[0].login,
                         email: response.data.data[0].email
                     })
