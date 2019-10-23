@@ -36,9 +36,9 @@ class MainPage extends React.Component {
     render() {
         return (
             <div>
-                <h3>ACCESS_TOKEN={Cookies.get("access_token")}</h3>
-                <h3>REFRESH_TOKEN={Cookies.get("refresh_token")}</h3>
-                <h3>SCOPE={Cookies.get("twitch_scope")}</h3>
+                <h3>ACCESS_TOKEN={this.state.access_token}</h3>
+                <h3>REFRESH_TOKEN={this.state.refresh_token}</h3>
+                <h3>SCOPE={this.state.twitch_scope}</h3>
                 <h3>USERNAME={this.state.username}</h3>
                 <h3>EMAIL={this.state.email}</h3>
             </div>
