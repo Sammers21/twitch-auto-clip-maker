@@ -1,3 +1,29 @@
 h3 {
-    font-size: small;
+  font-size: small;
+}
+
+#main-page {
+  background: white;
+}
+
+.nav-elem {
+  float: right;
+  list-style-type: none;
+  padding-left: 0;
+}
+
+nav {
+  display: inline-block;
+  width: 100%;
+}
+
+.border-colored {
+  border-style: solid;
+  border-color: coral;
+  padding: auto;
+}
+
+ol {
+  list-style-type: none;
+  padding-left: 0;
 }
