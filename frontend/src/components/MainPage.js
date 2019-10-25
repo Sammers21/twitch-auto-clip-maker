@@ -44,9 +44,6 @@ class MainPage extends React.Component {
                     <p class="nav-elem border-colored ">{this.state.username}</p>
                     <p class="nav-elem border-colored ">{this.state.email}</p>
                 </nav>
-                <h3>ACCESS_TOKEN={this.state.access_token}</h3>
-                <h3>REFRESH_TOKEN={this.state.refresh_token}</h3>
-                <h3>SCOPE={this.state.twitch_scope}</h3>
             </div>
         );
     }
