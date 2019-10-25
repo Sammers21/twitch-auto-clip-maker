@@ -100,25 +100,31 @@ public class Streams {
         HttpRequest<Buffer> clipReq = webClient.postAbs("https://api.twitch.tv/helix/clips");
         clipReq.putHeader("Authorization", String.format("Bearer %s", bearerToken));
         clipReq.addQueryParam("broadcaster_id", userId);
-
-        return clipReq.rxSend().map(resp -> {
+    
+        return clipReq.rxSend().flatMap(resp -> {
             JsonObject arg = resp.bodyAsJsonObject();
             log.info("Clip endpoint response:\n{}", arg.encodePrettily());
-            return arg.getJsonArray("data").getJsonObject(0).getString("id");
-        }).doOnSuccess(ok ->
-                dbController.insertClip(ok, channelName, userId, json.getString("title"))
-                        .subscribe(() -> {
-                            discordBot.getServersByName("Сычи")
-                                    .iterator()
-                                    .next()
-                                    .getTextChannelsByName("клипы")
-                                    .get(0)
-                                    .sendMessage(String.format("Новый клип на канале `%s`. Link: https://clips.twitch.tv/%s", channelName, ok));
-                            metricRegistry.meter(String.format("channel.%s.createClip", channelName)).mark();
-                            log.info("Clip is in the database");
-                        }, error -> {
-                            log.error("Unable to insert a clip", error);
-                        }));
+            if (resp.statusCode() == 200) {
+                return Single.just(arg.getJsonArray("data").getJsonObject(0).getString("id"));
+            } else {
+                metricRegistry.meter(String.format("channel.%s.failToCreateClip", channelName)).mark();
+                return Single.error(new IllegalStateException("Responsed with non 200 code:" + resp.statusCode()));
+            }
+        }).doOnSuccess(ok -> {
+            dbController.insertClip(ok, channelName, userId, json.getString("title"))
+                .subscribe(() -> {
+                    discordBot.getServersByName("Сычи")
+                        .iterator()
+                        .next()
+                        .getTextChannelsByName("клипы")
+                        .get(0)
+                        .sendMessage(String.format("Новый клип на канале `%s`. Link: https://clips.twitch.tv/%s", channelName, ok));
+                    metricRegistry.meter(String.format("channel.%s.createClip", channelName)).mark();
+                    log.debug("Clip is in the database");
+                }, error -> {
+                    log.error("Unable to insert a clip", error);
+                });
+        });
     }
 
     public synchronized int viewersOnStream(String channelName) {
