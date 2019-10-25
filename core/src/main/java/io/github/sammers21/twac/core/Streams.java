@@ -103,12 +103,11 @@ public class Streams {
     
         return clipReq.rxSend().flatMap(resp -> {
             JsonObject arg = resp.bodyAsJsonObject();
-            log.info("Clip endpoint response:\n{}", arg.encodePrettily());
             if (resp.statusCode() == 200) {
                 return Single.just(arg.getJsonArray("data").getJsonObject(0).getString("id"));
             } else {
                 metricRegistry.meter(String.format("channel.%s.failToCreateClip", channelName)).mark();
-                return Single.error(new IllegalStateException("Responsed with non 200 code:" + resp.statusCode()));
+                return Single.error(new IllegalStateException(String.format("Responsed with non 200 code: %s .Body:\n%s " + resp.statusCode(), arg.encodePrettily())));
             }
         }).doOnSuccess(ok -> {
             dbController.insertClip(ok, channelName, userId, json.getString("title"))
