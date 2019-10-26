@@ -48,7 +48,7 @@ public abstract class DecisionEngine {
                             );
                     }
                 } catch (NoSuchElementException e) {
-                    log.error("NLP");
+                    log.warn("NLP");
                 } catch (Throwable t) {
                     log.error("Unexpected exception", t);
                 }
