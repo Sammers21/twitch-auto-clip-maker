@@ -24,6 +24,7 @@ nohup /root/.sdkman/candidates/java/current/bin/java $JVM_OPTS \
                                                      /root/twitch-auto-clip/twitch-auto-clip-producer-*.jar \
                                                      -cfg /root/twitch-auto-clip/cfg.json \
                                                      -db /root/twitch-auto-clip/db.json \
+                                                      2> err.log
                                                     &
 sleep 3
 ENDSSH
