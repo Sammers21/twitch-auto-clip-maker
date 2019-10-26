@@ -13,9 +13,15 @@ class MainPage extends React.Component {
             twitch_scope: Cookies.get("twitch_scope"),
             username: 'USER_NAME',
             email: 'EMAIL',
-            profile_image_url: "/favicon.ico"
+            profile_image_url: "/favicon.ico",
+
         };
         this.loadState();
+
+        this.state = {value: ''};
+
+        this.handleChange = this.handleChange.bind(this);
+        this.handleSubmit = this.handleSubmit.bind(this);
     }
 
     loadState() {
@@ -44,6 +50,13 @@ class MainPage extends React.Component {
                     <p class="nav-elem border-colored ">{this.state.username}</p>
                     <p class="nav-elem border-colored ">{this.state.email}</p>
                 </nav>
+                <form onSubmit={this.handleSubmit}>
+                    <label>
+                        Channel:
+                        <input type="text" value={this.state.value} onChange={this.handleChange} />
+                    </label>
+                    <input type="submit" value="Submit" />
+                </form>
             </div>
         );
     }

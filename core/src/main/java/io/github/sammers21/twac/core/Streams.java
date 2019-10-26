@@ -107,7 +107,7 @@ public class Streams {
                 return Single.just(arg.getJsonArray("data").getJsonObject(0).getString("id"));
             } else {
                 metricRegistry.meter(String.format("channel.%s.failToCreateClip", channelName)).mark();
-                return Single.error(new IllegalStateException(String.format("Responsed with non 200 code: %s .Body:\n%s " + resp.statusCode(), arg.encodePrettily())));
+                return Single.error(new IllegalStateException(String.format("Responsed with non 200 code: %s .Body:\n%s ",resp.statusCode(), arg.encodePrettily())));
             }
         }).doOnSuccess(ok -> {
             dbController.insertClip(ok, channelName, userId, json.getString("title"))
