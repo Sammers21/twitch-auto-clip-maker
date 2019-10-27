@@ -119,8 +119,6 @@ public class Main {
         CHANNELS_TO_WATCH.stream().map(Channel::getName).forEach(twitchChatClient::joinChannel);
         reportMetrics(CHANNELS_TO_WATCH, metricRegistry, twitchChatClient);
         twitchChatClient.setMetricRegistry(metricRegistry);
-        String twaryna = streams.createClipOnChannel("twaryna").blockingGet();
-        log.info(twaryna);
     }
 
     private static void initStoragesAndViewersCounter(Set<Channel> channelToWatch) {
