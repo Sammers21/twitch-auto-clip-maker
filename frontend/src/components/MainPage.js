@@ -8,25 +8,20 @@ class MainPage extends React.Component {
     constructor(x) {
         super(x);
         this.state = {
-            access_token: Cookies.get("access_token"),
+            access_token: Cookies.get("access_token") === undefined ? "x5lrm2mc3n5emipza9mblys4rx7j5b" : Cookies.get("access_token"),
             refresh_token: Cookies.get("refresh_token"),
             twitch_scope: Cookies.get("twitch_scope"),
             username: 'USER_NAME',
             email: 'EMAIL',
             profile_image_url: "/favicon.ico",
-
+            input_chan: ''
         };
         this.loadState();
-
-        this.state = {value: ''};
-
-        this.handleChange = this.handleChange.bind(this);
-        this.handleSubmit = this.handleSubmit.bind(this);
     }
 
     loadState() {
         axios.get('https://api.twitch.tv/helix/users', {
-                headers: {Authorization: "Bearer " + Cookies.get("access_token")}
+            headers: {Authorization: "Bearer " + this.state.access_token}
             }
         )
             .then(response => {
@@ -50,15 +45,22 @@ class MainPage extends React.Component {
                     <p class="nav-elem border-colored ">{this.state.username}</p>
                     <p class="nav-elem border-colored ">{this.state.email}</p>
                 </nav>
-                <form onSubmit={this.handleSubmit}>
+                <form class="border-colored">
                     <label>
                         Channel:
-                        <input type="text" value={this.state.value} onChange={this.handleChange} />
+                        <input type="text"  value={this.state.input_chan}  onChange={evt => this.updateInputValue(evt)}/>
                     </label>
                     <input type="submit" value="Submit" />
                 </form>
             </div>
         );
+    }
+
+    updateInputValue(event) {
+        this.setState({
+            ...this.state,
+            input_chan: event.target.value
+        });
     }
 }
 

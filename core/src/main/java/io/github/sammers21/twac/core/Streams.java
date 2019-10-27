@@ -103,7 +103,12 @@ public class Streams {
     
         return clipReq.rxSend().flatMap(resp -> {
             JsonObject arg = resp.bodyAsJsonObject();
-            if (resp.statusCode() == 200) {
+            String clipLimitHeader = resp.getHeader("ratelimit-helixclipscreation-remaining");
+            if (clipLimitHeader != null) {
+                int rem = Integer.parseInt(clipLimitHeader);
+                metricRegistry.gauge("clip.limit.remaining", () -> () -> rem);
+            }
+            if (resp.statusCode() / 100 == 2) {
                 return Single.just(arg.getJsonArray("data").getJsonObject(0).getString("id"));
             } else {
                 metricRegistry.meter(String.format("channel.%s.failToCreateClip", channelName)).mark();

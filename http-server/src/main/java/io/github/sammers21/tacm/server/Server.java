@@ -75,7 +75,7 @@ public class Server {
                             Integer expiresIsSeconds = entries.getInteger("expires_in");
                             ctx
                                     .addCookie(Cookie.cookie(TWITCH_ACCESS_TOKEN_COOKIE, entries.getString("access_token")).setPath("/").setMaxAge(expiresIsSeconds))
-                                    .addCookie(Cookie.cookie(TWITCH_SCOPE_COOKIE, scope).setPath("/").setMaxAge(expiresIsSeconds))
+                                    .addCookie(Cookie.cookie(TWITCH_SCOPE_COOKIE, scope.replace(" ", "_")).setPath("/").setMaxAge(expiresIsSeconds))
                                     .addCookie(Cookie.cookie(TWITCH_REFRESH_TOKEN_COOKIE, entries.getString("refresh_token")).setPath("/").setMaxAge(expiresIsSeconds))
                                     .response()
                                     .setStatusCode(303)
