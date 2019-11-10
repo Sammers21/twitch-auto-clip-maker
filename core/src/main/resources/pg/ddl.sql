@@ -1,11 +1,11 @@
-DROP TABLE IF EXISTS client_token;
+DROP TABLE IF EXISTS bot_token;
 DROP TABLE IF EXISTS clip;
 DROP TABLE IF EXISTS clip_released;
 DROP TABLE IF EXISTS release;
 DROP TABLE IF EXISTS youtube_channel;
 DROP TABLE IF EXISTS kv;
 
-CREATE TABLE client_token
+CREATE TABLE bot_token
 (
     token VARCHAR(500) PRIMARY KEY,
     time  timestamp without time zone default now()
@@ -53,3 +53,7 @@ CREATE TABLE kv
     value bytea,
     PRIMARY KEY (id, key)
 );
+
+CREATE TABLE service_users(
+
+)

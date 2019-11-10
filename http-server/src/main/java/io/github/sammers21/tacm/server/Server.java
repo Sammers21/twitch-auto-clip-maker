@@ -16,15 +16,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class Server {
     private static final Logger log = LoggerFactory.getLogger(Server.class);
 
     private final String REGISTRED_REDIRECT_URL = "http://clip-maker.com/redirect-from-twitch/";
-    private final String TWITCH_CLIENT_ID = "vb3b4l61t5i2af2svkksagbxuxm26x";
-    private final String TWITCH_CLIENT_SECRET_CODE = "n3xq72l2ro9y458znf6b8dnadcucnh";
+    private final String TWITCH_CLIENT_ID = "libzmqqhxffbgfsyt8v29h4habjeqq";
+    private final String TWITCH_CLIENT_SECRET_CODE = "is9fcwcq4342ltr5tpjcc0nzmeaplo";
     private final String INDEX_HTML_PAGE;
+    
     private final String TWITCH_ACCESS_TOKEN_COOKIE = "access_token";
     private final String TWITCH_REFRESH_TOKEN_COOKIE = "refresh_token";
     private final String TWITCH_SCOPE_COOKIE = "twitch_scope";
@@ -36,8 +40,7 @@ public class Server {
     public Server(Vertx vertx, Integer port) throws IOException {
         this.vertx = vertx;
         this.port = port;
-        InputStream resourceAsStream = Server.class.getClassLoader().getResourceAsStream("webroot/index.html");
-        INDEX_HTML_PAGE = readString(resourceAsStream);
+        INDEX_HTML_PAGE = readIndexHtml();
         webClient = WebClient.create(vertx);
     }
 
@@ -102,18 +105,23 @@ public class Server {
                 .listen(port);
         log.info("Started on port:{}", port);
     }
-
-    private String readString(InputStream resourceAsStream) throws IOException {
+    
+    private String readIndexHtml() throws IOException {
+        long start = System.nanoTime();
+        InputStream resourceAsStream = Server.class.getClassLoader().getResourceAsStream("webroot/index.html");
         final int bufferSize = 1024;
         final char[] buffer = new char[bufferSize];
         final StringBuilder out = new StringBuilder();
-        Reader in = new InputStreamReader(resourceAsStream, "UTF-8");
+        Reader in = new InputStreamReader(Objects.requireNonNull(resourceAsStream), StandardCharsets.UTF_8);
         for (; ; ) {
             int rsz = in.read(buffer, 0, buffer.length);
             if (rsz < 0)
                 break;
             out.append(buffer, 0, rsz);
         }
+        long stop = System.nanoTime();
+        long elapsed = stop - start;
+        log.info("Index html read time: {}ns", TimeUnit.NANOSECONDS.toMillis(elapsed));
         return out.toString();
     }
 }

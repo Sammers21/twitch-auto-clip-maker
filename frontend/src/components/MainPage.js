@@ -57,7 +57,7 @@ class MainPage extends React.Component {
                     {this.state.clips.map(value => {
                         return (
                             <div key={value.slug} className="border-colored">
-                                <iframe src={value.embed_url + '&autoplay=false'}  title={value.slug} width='640' height='360' frameBorder='0' scrolling='no' allowFullScreen={true}></iframe>
+                                <iframe src={value.embed_url + '&autoplay=false'}  title={value.slug} width={640 / 4} height={360 / 4} frameBorder='0' scrolling='no' allowFullScreen={true}/>
                             </div>
                         )
                     })}
