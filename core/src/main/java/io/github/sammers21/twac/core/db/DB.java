@@ -20,13 +20,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class DbController {
+public class DB {
 
-    private static final Logger log = LoggerFactory.getLogger(DbController.class);
+    private static final Logger log = LoggerFactory.getLogger(DB.class);
     private final PgPool pgClient;
     private final String version;
 
-    public DbController(JsonObject dbCfg, String version) {
+    public DB(JsonObject dbCfg, String version) {
         this.version = version;
         PgPoolOptions pgOptions = new PgPoolOptions()
                 .setPort(dbCfg.getInteger("port"))
@@ -51,8 +51,8 @@ public class DbController {
     public Single<String> token() {
         return pgClient
                 .rxQuery("SELECT token\n" +
-                        "from client_token\n" +
-                        "order by client_token.time DESC\n" +
+                        "from bot_token\n" +
+                        "order by bot_token.time DESC\n" +
                         "limit 1")
                 .map(pgRowSet -> {
                     PgRowSet rs = pgRowSet.value();

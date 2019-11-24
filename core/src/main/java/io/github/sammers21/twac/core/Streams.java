@@ -1,7 +1,7 @@
 package io.github.sammers21.twac.core;
 
 import com.codahale.metrics.MetricRegistry;
-import io.github.sammers21.twac.core.db.DbController;
+import io.github.sammers21.twac.core.db.DB;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
@@ -22,7 +22,7 @@ public class Streams {
     private Map<String, JsonObject> streamersAndInfo = new ConcurrentHashMap<>();
     private Vertx vertx;
     private DiscordApi discordBot;
-    private final DbController dbController;
+    private final DB DB;
     private final WebClient webClient;
     private final String clientId;
     private final String bearerToken;
@@ -32,7 +32,7 @@ public class Streams {
 
     public Streams(Vertx vertx,
                    DiscordApi discordBot,
-                   DbController dbController,
+                   DB DB,
                    WebClient webClient,
                    String clientId,
                    String bearerToken,
@@ -42,7 +42,7 @@ public class Streams {
 
         this.vertx = vertx;
         this.discordBot = discordBot;
-        this.dbController = dbController;
+        this.DB = DB;
         this.webClient = webClient;
         this.clientId = clientId;
         this.bearerToken = bearerToken;
@@ -115,7 +115,7 @@ public class Streams {
                 return Single.error(new IllegalStateException(String.format("Responsed with non 200 code: %s .Body:\n%s ",resp.statusCode(), arg.encodePrettily())));
             }
         }).doOnSuccess(ok -> {
-            dbController.insertClip(ok, channelName, userId, json.getString("title"))
+            DB.insertClip(ok, channelName, userId, json.getString("title"))
                 .subscribe(() -> {
                     discordBot.getServersByName("Сычи")
                         .iterator()

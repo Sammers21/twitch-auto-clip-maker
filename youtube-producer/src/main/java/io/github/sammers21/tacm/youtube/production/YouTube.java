@@ -19,16 +19,12 @@ import com.google.api.services.youtube.model.VideoSnippet;
 import com.google.api.services.youtube.model.VideoStatus;
 import com.google.common.collect.Lists;
 import io.github.sammers21.tacm.youtube.store.PgDataFactory;
-import io.github.sammers21.twac.core.db.DbController;
+import io.github.sammers21.twac.core.db.DB;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -54,18 +50,18 @@ public class YouTube {
 
     private final String host;
     private final File youtubeCfgPath;
-    private final DbController dbController;
+    private final DB DB;
     private final JsonObject json;
     private final String youtubeChan;
 
-    public YouTube(String host, File youtubeCfgPath, DbController dbController) {
+    public YouTube(String host, File youtubeCfgPath, DB DB) {
         this.youtubeCfgPath = youtubeCfgPath;
         this.youtubeChan = this.youtubeCfgPath.getName().replace(".json", "");
         this.host = host;
         log = LoggerFactory.getLogger(String.format("%s:[%s]", YouTube.class.getName(), youtubeChan));
         try {
             this.json = new JsonObject(new String(Files.readAllBytes(Paths.get(this.youtubeCfgPath.getPath()))));
-            this.dbController = dbController;
+            this.DB = DB;
             log.info("Authorizing on youtube");
             Credential credential = authorize();
             log.info("Youtube auth is OK");
@@ -81,7 +77,7 @@ public class YouTube {
     private Credential authorize() throws IOException {
         Reader clientSecretReader = new InputStreamReader(new FileInputStream(youtubeCfgPath));
         GoogleClientSecrets clientSecrets = GoogleClientSecrets.load(JSON_FACTORY, clientSecretReader);
-        PgDataFactory pgDataFactory = new PgDataFactory(dbController);
+        PgDataFactory pgDataFactory = new PgDataFactory(DB);
         DataStore<StoredCredential> youtubeChanDataStore = pgDataFactory.getDataStore(youtubeChan);
         GoogleAuthorizationCodeFlow flow = new GoogleAuthorizationCodeFlow.Builder(
                 HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)

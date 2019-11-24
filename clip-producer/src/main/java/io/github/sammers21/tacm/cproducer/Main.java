@@ -8,7 +8,7 @@ import io.github.sammers21.twac.core.Channel;
 import io.github.sammers21.twac.core.Streams;
 import io.github.sammers21.twac.core.Utils;
 import io.github.sammers21.twac.core.chat.TwitchChatClient;
-import io.github.sammers21.twac.core.db.DbController;
+import io.github.sammers21.twac.core.db.DB;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -50,7 +50,7 @@ public class Main {
     private static final Map<String, LastMessagesStorage> storageByChan = new ConcurrentHashMap<>();
     private static Vertx vertx;
     private static WebClient webClient;
-    private static DbController dbController;
+    private static DB DB;
     private static Streams streams;
     public static String VERSION;
     private static DiscordApi discord;
@@ -91,13 +91,13 @@ public class Main {
         discord = new DiscordApiBuilder().setToken("NjMxOTUyNzQwMDk2MTQ3NDk0.XZ-Wcg.slvHO99rAcWcdzaIKZU8IXnt7ks").login().join();
 
         MetricRegistry metricRegistry = new MetricRegistry();
-        dbController = new DbController(dbCfg, VERSION);
+        DB = new DB(dbCfg, VERSION);
 
         vertx = Vertx.vertx(new VertxOptions().setInternalBlockingPoolSize(CHANNELS_TO_WATCH.size()));
         webClient = WebClient.create(vertx);
-        BEARER_TOKEN.set(dbController.token().blockingGet());
+        BEARER_TOKEN.set(DB.token().blockingGet());
         log.info("User token form DB:'{}'", BEARER_TOKEN.get());
-        streams = new Streams(vertx, discord, dbController, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 5_000, metricRegistry);
+        streams = new Streams(vertx, discord, DB, webClient, CLIENT_ID, BEARER_TOKEN.get(), CHANNELS_TO_WATCH, 5_000, metricRegistry);
         String botInvite = discord.createBotInvite();
         String list = discord.getServers().stream().map(Nameable::getName).collect(Collectors.joining(",", "[", "]"));
         log.info("Server list:{}, inv link:{}", list, botInvite);

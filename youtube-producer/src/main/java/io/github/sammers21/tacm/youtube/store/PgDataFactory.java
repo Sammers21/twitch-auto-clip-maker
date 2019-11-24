@@ -2,18 +2,18 @@ package io.github.sammers21.tacm.youtube.store;
 
 import com.google.api.client.util.store.AbstractDataStoreFactory;
 import com.google.api.client.util.store.DataStore;
-import io.github.sammers21.twac.core.db.DbController;
+import io.github.sammers21.twac.core.db.DB;
 
 import java.io.Serializable;
 import java.util.Objects;
 
 public class PgDataFactory extends AbstractDataStoreFactory {
 
-    private final DbController dbController;
+    private final DB DB;
 
-    public PgDataFactory(DbController dbController) {
-        Objects.requireNonNull(dbController);
-        this.dbController = dbController;
+    public PgDataFactory(DB DB) {
+        Objects.requireNonNull(DB);
+        this.DB = DB;
     }
 
     /**
@@ -22,7 +22,7 @@ public class PgDataFactory extends AbstractDataStoreFactory {
     @Override
     protected <V extends Serializable> DataStore<V> createDataStore(String id) {
         Objects.requireNonNull(id);
-        return new PgDataStore<>(this, id, dbController.kv(id));
+        return new PgDataStore<>(this, id, DB.kv(id));
     }
 
 }

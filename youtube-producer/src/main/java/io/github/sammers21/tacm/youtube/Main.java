@@ -5,16 +5,12 @@ import io.github.sammers21.tacm.youtube.production.Producer;
 import io.github.sammers21.tacm.youtube.production.VideoMaker;
 import io.github.sammers21.tacm.youtube.production.YouTube;
 import io.github.sammers21.twac.core.Utils;
-import io.github.sammers21.twac.core.db.DbController;
+import io.github.sammers21.twac.core.db.DB;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.ext.web.client.WebClient;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
+import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +28,7 @@ public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
     private static String VERSION;
 
-    private static DbController dbController;
+    private static DB DB;
     private static YouTube youTube;
     private static WebClient webClient;
     private static Vertx vertx;
@@ -70,14 +66,14 @@ public class Main {
         } else {
             throw new IllegalStateException("Not valid production dir");
         }
-        dbController = new DbController(dbCfg, VERSION);
-        vMaker = new VideoMaker(dbController, vertx, webClient, cfg.getString("client_id"));
+        DB = new DB(dbCfg, VERSION);
+        vMaker = new VideoMaker(DB, vertx, webClient, cfg.getString("client_id"));
         AtomicBoolean videoReleaseLockFlag = new AtomicBoolean(false);
         Arrays.stream(Objects.requireNonNull(productionDir.listFiles(File::isFile))).forEach(file -> {
             try {
                 JsonObject json = new JsonObject(new String(Files.readAllBytes(Paths.get(file.getAbsolutePath()))));
-                youTube = new YouTube(host, file, dbController);
-                Producer producer = new Producer(vertx, json, youTube, vMaker, dbController, videoReleaseLockFlag);
+                youTube = new YouTube(host, file, DB);
+                Producer producer = new Producer(vertx, json, youTube, vMaker, DB, videoReleaseLockFlag);
                 producer.runProduction();
             } catch (IOException e) {
                 throw new IllegalStateException("Init error");

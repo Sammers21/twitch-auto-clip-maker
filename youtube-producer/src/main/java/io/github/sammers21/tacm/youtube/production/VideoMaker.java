@@ -1,6 +1,6 @@
 package io.github.sammers21.tacm.youtube.production;
 
-import io.github.sammers21.twac.core.db.DbController;
+import io.github.sammers21.twac.core.db.DB;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
@@ -29,13 +29,13 @@ public class VideoMaker {
 
     private static final Logger log = LoggerFactory.getLogger(VideoMaker.class);
     public static final Pattern CLIP_PATTERN = Pattern.compile("https://([\\w-]+)\\.twitch\\.tv/(\\d+)-offset-(\\d+).*");
-    private final DbController dbController;
+    private final DB DB;
     private final Vertx vertx;
     private final WebClient webClient;
     private final String clientId;
 
-    public VideoMaker(DbController dbController, Vertx vertx, WebClient webClient, String clientId) {
-        this.dbController = dbController;
+    public VideoMaker(DB DB, Vertx vertx, WebClient webClient, String clientId) {
+        this.DB = DB;
         this.vertx = vertx;
         this.webClient = webClient;
         this.clientId = clientId;

@@ -2,7 +2,7 @@ package io.github.sammers21.tacm.youtube.production;
 
 import io.github.sammers21.tacm.youtube.settings.Settings;
 import io.github.sammers21.tacm.youtube.settings.SimpleIntervalCheck;
-import io.github.sammers21.twac.core.db.DbController;
+import io.github.sammers21.twac.core.db.DB;
 import io.reactivex.Maybe;
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
@@ -14,14 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -33,19 +26,19 @@ public class Producer {
     private final JsonObject productionPolicy;
     private final YouTube youTube;
     private final VideoMaker videoMaker;
-    private final DbController dbController;
+    private final DB DB;
     private final String youtubeChan;
     private final Settings settings;
     private final Set<String> streamerts;
     private final AtomicBoolean locked;
     private final Random rnd = new Random();
 
-    public Producer(Vertx vertx, JsonObject youtubeJson, YouTube youTube, VideoMaker videoMaker, DbController dbController, AtomicBoolean locked) {
+    public Producer(Vertx vertx, JsonObject youtubeJson, YouTube youTube, VideoMaker videoMaker, DB DB, AtomicBoolean locked) {
         this.vertx = vertx;
         this.productionPolicy = youtubeJson.getJsonObject("youtube_production");
         this.youTube = youTube;
         this.videoMaker = videoMaker;
-        this.dbController = dbController;
+        this.DB = DB;
         this.youtubeChan = productionPolicy.getString("youtube_chan");
         this.locked = locked;
         this.settings = Settings.parseJson(productionPolicy.getJsonObject("production_settings"));
@@ -56,7 +49,7 @@ public class Producer {
     }
 
     public Single<Integer> releasedTodayTimes() {
-        return dbController.releasesOnChan(youtubeChan).map(
+        return DB.releasesOnChan(youtubeChan).map(
                 localDateIntegerMap ->
                         localDateIntegerMap.getOrDefault(LocalDate.now(), 0)
         );
@@ -117,7 +110,7 @@ public class Producer {
             SimpleIntervalCheck simpleIntervalCheck = (SimpleIntervalCheck) this.settings;
             Integer max = simpleIntervalCheck.getMax();
             Integer min = simpleIntervalCheck.getMin();
-            dbController.titleGroupedNonIncluded(streamerToRelease)
+            DB.titleGroupedNonIncluded(streamerToRelease)
                     .flatMap(triplets -> {
                         List<String> clipsToRelease = new LinkedList<>();
                         for (Triplet<String, LocalDateTime, String[]> next : triplets) {
@@ -175,7 +168,7 @@ public class Producer {
                                                     }
                                                 });
                                                 return maybeUpload.toSingle()
-                                                        .flatMapCompletable(videoId -> dbController.bundleOfClips(selectedClips, videoId, youtubeChan))
+                                                        .flatMapCompletable(videoId -> DB.bundleOfClips(selectedClips, videoId, youtubeChan))
                                                         .doAfterTerminate(() -> {
                                                             String absolutePath = compiledVideoFile.getAbsolutePath();
                                                             vertx.fileSystem()

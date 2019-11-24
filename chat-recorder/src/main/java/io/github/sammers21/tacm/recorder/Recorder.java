@@ -1,7 +1,7 @@
 package io.github.sammers21.tacm.recorder;
 
 import io.github.sammers21.twac.core.chat.TwitchChatClient;
-import io.github.sammers21.twac.core.db.DbController;
+import io.github.sammers21.twac.core.db.DB;
 import io.vertx.core.json.JsonObject;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -20,7 +20,7 @@ public class Recorder {
 
 
     private static final Logger log = LoggerFactory.getLogger(Recorder.class);
-    private static DbController dbController;
+    private static DB DB;
     private static AtomicBoolean rec = new AtomicBoolean(false);
     private static AtomicBoolean isHighLight = new AtomicBoolean(false);
     private static AtomicReference<String> session = new AtomicReference<>(null);
@@ -34,14 +34,14 @@ public class Recorder {
         CommandLine cmd = parser.parse(options, args);
         JsonObject dbCfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("db")))));
         String streamer = cmd.getOptionValue("s");
-        dbController = new DbController(dbCfg, "0.1.beta");
+        DB = new DB(dbCfg, "0.1.beta");
 
         TwitchChatClient twitchChatClient = new TwitchChatClient("ep8dqo0dfx43voyg5seb0l1z2xvn1l", "sammers21");
         twitchChatClient.start();
         twitchChatClient.joinChannel(streamer);
         twitchChatClient.messageHandler(msg -> {
             if (rec.get()) {
-                dbController.insertChatMessage(msg, isHighLight.get(), session.get())
+                DB.insertChatMessage(msg, isHighLight.get(), session.get())
                         .subscribe(() -> {
                             msgThisSession.incrementAndGet();
                         }, error -> {
@@ -94,7 +94,7 @@ public class Recorder {
 
     private static void deleteSession(String sessionId) throws InterruptedException {
         stop();
-        dbController.deleteSession(sessionId).subscribe(deleted -> {
+        DB.deleteSession(sessionId).subscribe(deleted -> {
             log.info("Deleted session={}, message count={}", session.get(), deleted);
         }, error -> {
             log.error("Delete error", error);
