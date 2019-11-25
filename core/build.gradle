@@ -4,7 +4,7 @@ plugins {
 }
 
 dependencies {
-    compile 'org.javacord:javacord:3.0.4'
+    compile 'org.javacord:javacord:3.0.5'
 
     //vertx
     compile group: 'io.vertx', name: 'vertx-core', version: vertxVersion
