@@ -91,7 +91,7 @@ public class VideoMaker {
                         txtBuildFilePath,
                         Buffer.buffer(txtBuildFileText.getBytes(StandardCharsets.UTF_8))
                 ).andThen(
-                        vertx.rxExecuteBlocking((io.vertx.reactivex.core.Future<File> event) -> {
+                        vertx.rxExecuteBlocking((io.vertx.reactivex.core.Promise<File> event) -> {
                             Runtime run = Runtime.getRuntime();
                             Process pr;
                             try {

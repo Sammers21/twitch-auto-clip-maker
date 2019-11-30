@@ -12,7 +12,7 @@ dependencies {
     compile project(":core")
     compile 'org.apache.commons:commons-lang3:3.9'
     // logging
-    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
 }
 
 
