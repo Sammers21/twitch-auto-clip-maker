@@ -24,9 +24,9 @@ import java.util.stream.Collectors;
 public class Server {
     private static final Logger log = LoggerFactory.getLogger(Server.class);
 
-    private final String REGISTRED_REDIRECT_URL = "http://clip-maker.com/redirect-from-twitch/";
-    private final String TWITCH_CLIENT_ID = "libzmqqhxffbgfsyt8v29h4habjeqq";
-    private final String TWITCH_CLIENT_SECRET_CODE = "is9fcwcq4342ltr5tpjcc0nzmeaplo";
+    private final String REGISTRED_REDIRECT_URL = "http://clip-maker.com/redirect-from-twitch";
+    private final String TWITCH_CLIENT_ID = "rld376iuzgb5mzpfos9kvh6zjdpih1";
+    private final String TWITCH_CLIENT_SECRET_CODE = "j5ovf00t6x92wlxg6abvck9dsg1qcs";
     private final String INDEX_HTML_PAGE;
 
     private final String TWITCH_ACCESS_TOKEN_COOKIE = "access_token";
