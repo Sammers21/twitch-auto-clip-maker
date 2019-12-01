@@ -19,6 +19,7 @@ public class TwitchChatClient {
     private final String nickName;
     private final TcpTextClient tcpTextClient;
     private Handler<ChatMessage> handler;
+    private Handler<Void> loginResult;
     private final CountDownLatch countDownLatch = new CountDownLatch(1);
     private MetricRegistry metricRegistry;
 
@@ -32,6 +33,13 @@ public class TwitchChatClient {
                 log.info("PING PONG OK");
                 return;
             }
+            if (event.contains("NOTICE")) {
+                log.info(event);
+            }
+            if (event.contains("Login unsuccessful")) {
+                log.error("FAILED TWITCH CHAT LOGIN", new IllegalStateException("FAILED TWITCH CHAT LOGIN"));
+                return;
+            }
             if (event.endsWith(">") && countDownLatch.getCount() == 1) {
                 countDownLatch.countDown();
                 log.info("Input can be started");
@@ -43,6 +51,8 @@ public class TwitchChatClient {
                     Objects.requireNonNull(handler);
                     Objects.requireNonNull(parse);
                     handler.handle(parse);
+                } else {
+                    log.info(event);
                 }
             }
         });
