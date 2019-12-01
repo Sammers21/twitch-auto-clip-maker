@@ -28,7 +28,7 @@ public class Server {
     private final String TWITCH_CLIENT_ID = "libzmqqhxffbgfsyt8v29h4habjeqq";
     private final String TWITCH_CLIENT_SECRET_CODE = "is9fcwcq4342ltr5tpjcc0nzmeaplo";
     private final String INDEX_HTML_PAGE;
-    
+
     private final String TWITCH_ACCESS_TOKEN_COOKIE = "access_token";
     private final String TWITCH_REFRESH_TOKEN_COOKIE = "refresh_token";
     private final String TWITCH_SCOPE_COOKIE = "twitch_scope";
@@ -49,14 +49,15 @@ public class Server {
         router.route().handler(CookieHandler.create());
         router.get("/").handler(ctx -> {
             if (ctx.getCookie(TWITCH_ACCESS_TOKEN_COOKIE) == null
-                    || ctx.getCookie(TWITCH_REFRESH_TOKEN_COOKIE) == null
-                    || ctx.getCookie(TWITCH_SCOPE_COOKIE) == null
+                || ctx.getCookie(TWITCH_REFRESH_TOKEN_COOKIE) == null
+                || ctx.getCookie(TWITCH_SCOPE_COOKIE) == null
             ) {
                 ctx.response().setStatusCode(303).putHeader(HttpHeaders.LOCATION, "/login").end();
             } else {
                 ctx.response().end(INDEX_HTML_PAGE);
             }
         });
+        router.route("/clip-maker-bot-redirect").handler(ctx -> ctx.response().end("OK"));
         router.get("/redirect-from-twitch").handler(ctx -> {
             HttpServerRequest request = ctx.request();
             String params = request.params().entries().stream().map(e -> String.format("%s: %s", e.getKey(), e.getValue())).collect(Collectors.joining("; ", "[", "]"));
@@ -66,30 +67,30 @@ public class Server {
             String scope = request.getParam("scope");
 
             webClient.postAbs("https://id.twitch.tv/oauth2/token")
-                    .addQueryParam("client_id", TWITCH_CLIENT_ID)
-                    .addQueryParam("client_secret", TWITCH_CLIENT_SECRET_CODE)
-                    .addQueryParam("code", code)
-                    .addQueryParam("grant_type", "authorization_code")
-                    .addQueryParam("redirect_uri", REGISTRED_REDIRECT_URL)
-                    .rxSend()
-                    .subscribe(resp -> {
-                        JsonObject entries = resp.bodyAsJsonObject();
-                        if (resp.statusCode() == 200) {
-                            Integer expiresIsSeconds = entries.getInteger("expires_in");
-                            ctx
-                                    .addCookie(Cookie.cookie(TWITCH_ACCESS_TOKEN_COOKIE, entries.getString("access_token")).setPath("/").setMaxAge(expiresIsSeconds))
-                                    .addCookie(Cookie.cookie(TWITCH_SCOPE_COOKIE, scope.replace(" ", "_")).setPath("/").setMaxAge(expiresIsSeconds))
-                                    .addCookie(Cookie.cookie(TWITCH_REFRESH_TOKEN_COOKIE, entries.getString("refresh_token")).setPath("/").setMaxAge(expiresIsSeconds))
-                                    .response()
-                                    .setStatusCode(303)
-                                    .putHeader(HttpHeaders.LOCATION, "/")
-                                    .end();
-                        } else {
-                            log.error("Failed obtain token operation. STATUS:{}, RESPONSE:{}", resp.statusCode(), entries.encodePrettily());
-                        }
-                    }, error -> {
-                        log.error("Obtain token error", error);
-                    });
+                .addQueryParam("client_id", TWITCH_CLIENT_ID)
+                .addQueryParam("client_secret", TWITCH_CLIENT_SECRET_CODE)
+                .addQueryParam("code", code)
+                .addQueryParam("grant_type", "authorization_code")
+                .addQueryParam("redirect_uri", REGISTRED_REDIRECT_URL)
+                .rxSend()
+                .subscribe(resp -> {
+                    JsonObject entries = resp.bodyAsJsonObject();
+                    if (resp.statusCode() == 200) {
+                        Integer expiresIsSeconds = entries.getInteger("expires_in");
+                        ctx
+                            .addCookie(Cookie.cookie(TWITCH_ACCESS_TOKEN_COOKIE, entries.getString("access_token")).setPath("/").setMaxAge(expiresIsSeconds))
+                            .addCookie(Cookie.cookie(TWITCH_SCOPE_COOKIE, scope.replace(" ", "_")).setPath("/").setMaxAge(expiresIsSeconds))
+                            .addCookie(Cookie.cookie(TWITCH_REFRESH_TOKEN_COOKIE, entries.getString("refresh_token")).setPath("/").setMaxAge(expiresIsSeconds))
+                            .response()
+                            .setStatusCode(303)
+                            .putHeader(HttpHeaders.LOCATION, "/")
+                            .end();
+                    } else {
+                        log.error("Failed obtain token operation. STATUS:{}, RESPONSE:{}", resp.statusCode(), entries.encodePrettily());
+                    }
+                }, error -> {
+                    log.error("Obtain token error", error);
+                });
         });
         router.get("/login").handler(ctx -> {
             var cookie = ctx.getCookie(TWITCH_ACCESS_TOKEN_COOKIE);
@@ -101,11 +102,11 @@ public class Server {
         });
         router.route().handler(StaticHandler.create());
         vertx.createHttpServer()
-                .requestHandler(router)
-                .listen(port);
+            .requestHandler(router)
+            .listen(port);
         log.info("Started on port:{}", port);
     }
-    
+
     private String readIndexHtml() throws IOException {
         long start = System.nanoTime();
         InputStream resourceAsStream = Server.class.getClassLoader().getResourceAsStream("webroot/index.html");

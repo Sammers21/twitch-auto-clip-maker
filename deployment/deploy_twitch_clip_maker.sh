@@ -11,9 +11,9 @@ set -x
 mkdir -p /root/twitch-auto-clip
 ENDSSH
 scp clip-producer/build/libs/twitch-auto-clip-producer-*.jar root@$SSH_HOST:/root/twitch-auto-clip
-scp ~/deployments/twitch-clip-maker/cfg.json root@$SSH_HOST:/root/twitch-auto-clip
-scp ~/deployments/twitch-clip-maker/db.json root@$SSH_HOST:/root/twitch-auto-clip
-ssh root@$SSH_HOST <<'ENDSSH'
+scp ~/twitch-auto-clip-maker/deployment/cfg.json root@$SSH_HOST:/root/twitch-auto-clip
+scp ~/twitch-auto-clip-maker/deployment/db.json root@$SSH_HOST:/root/twitch-auto-clip
+ssh root@$SSH_HOST -t bash <<'ENDSSH'
 set -x
 JVM_OPTS="-XX:+HeapDumpOnOutOfMemoryError -Xmx400m -Xlog:gc*:file=./gc.log"
 $(/root/.sdkman/candidates/java/current/bin/jps | grep "twitch-auto-clip*" | awk '{print $1}' | xargs kill -9) || true
