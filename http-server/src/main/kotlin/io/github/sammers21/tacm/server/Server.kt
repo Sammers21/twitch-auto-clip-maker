@@ -11,7 +11,6 @@ import io.vertx.reactivex.ext.web.client.WebClient
 import io.vertx.reactivex.ext.web.handler.CookieHandler
 import io.vertx.reactivex.ext.web.handler.StaticHandler
 import org.slf4j.LoggerFactory
-import java.io.IOException
 import java.io.InputStreamReader
 import java.io.Reader
 import java.nio.charset.StandardCharsets
@@ -20,18 +19,29 @@ import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
 
 class Server(private val vertx: Vertx, private val port: Int) {
-    private val REGISTRED_REDIRECT_URL = "http://clip-maker.com/redirect-from-twitch"
-    private val TWITCH_CLIENT_ID = "rld376iuzgb5mzpfos9kvh6zjdpih1"
-    private val TWITCH_CLIENT_SECRET_CODE = "j5ovf00t6x92wlxg6abvck9dsg1qcs"
-    private val INDEX_HTML_PAGE: String
-    private val TWITCH_ACCESS_TOKEN_COOKIE = "access_token"
-    private val TWITCH_REFRESH_TOKEN_COOKIE = "refresh_token"
-    private val TWITCH_SCOPE_COOKIE = "twitch_scope"
+
     private val webClient: WebClient
+    private val INDEX_HTML_PAGE: String
+
+    companion object {
+        private val log = LoggerFactory.getLogger(Server::class.java)
+        const val REGISTRED_REDIRECT_URL = "http://clip-maker.com/redirect-from-twitch"
+        const val TWITCH_CLIENT_ID = "rld376iuzgb5mzpfos9kvh6zjdpih1"
+        const val TWITCH_CLIENT_SECRET_CODE = "j5ovf00t6x92wlxg6abvck9dsg1qcs"
+        const val TWITCH_ACCESS_TOKEN_COOKIE = "access_token"
+        const val TWITCH_REFRESH_TOKEN_COOKIE = "refresh_token"
+        const val TWITCH_SCOPE_COOKIE = "twitch_scope"
+    }
+
+    init {
+        INDEX_HTML_PAGE = readIndexHtml()
+        webClient = WebClient.create(vertx)
+    }
+
     fun start() {
         val router = Router.router(vertx)
         router.route().handler(CookieHandler.create())
-        router["/"].handler { ctx: RoutingContext ->
+        router.get("/").handler { ctx: RoutingContext ->
             if (ctx.getCookie(TWITCH_ACCESS_TOKEN_COOKIE) == null || ctx.getCookie(TWITCH_REFRESH_TOKEN_COOKIE) == null || ctx.getCookie(TWITCH_SCOPE_COOKIE) == null) {
                 ctx.response().setStatusCode(303).putHeader(HttpHeaders.LOCATION, "/login").end()
             } else {
@@ -39,7 +49,7 @@ class Server(private val vertx: Vertx, private val port: Int) {
             }
         }
         router.route("/clip-maker-bot-redirect").handler { ctx: RoutingContext -> ctx.response().end("OK") }
-        router["/redirect-from-twitch"].handler { ctx: RoutingContext ->
+        router.get("/redirect-from-twitch").handler { ctx: RoutingContext ->
             val request = ctx.request()
             val params = request.params().entries().stream().map { e: Map.Entry<String?, String?> -> String.format("%s: %s", e.key, e.value) }.collect(Collectors.joining("; ", "[", "]"))
             log.info("PATH:{}, PARAMS:{}", request.path(), params)
@@ -69,7 +79,7 @@ class Server(private val vertx: Vertx, private val port: Int) {
                         }
                     }) { error: Throwable? -> log.error("Obtain token error", error) }
         }
-        router["/login"].handler { ctx: RoutingContext ->
+        router.get("/login").handler { ctx: RoutingContext ->
             val cookie = ctx.getCookie(TWITCH_ACCESS_TOKEN_COOKIE)
             if (cookie == null) {
                 ctx.response().end(INDEX_HTML_PAGE)
@@ -84,7 +94,6 @@ class Server(private val vertx: Vertx, private val port: Int) {
         log.info("Started on port:{}", port)
     }
 
-    @Throws(IOException::class)
     private fun readIndexHtml(): String {
         val start = System.nanoTime()
         val resourceAsStream = Server::class.java.classLoader.getResourceAsStream("webroot/index.html")
@@ -101,14 +110,5 @@ class Server(private val vertx: Vertx, private val port: Int) {
         val elapsed = stop - start
         log.info("Index html read time: {}ns", TimeUnit.NANOSECONDS.toMillis(elapsed))
         return out.toString()
-    }
-
-    companion object {
-        private val log = LoggerFactory.getLogger(Server::class.java)
-    }
-
-    init {
-        INDEX_HTML_PAGE = readIndexHtml()
-        webClient = WebClient.create(vertx)
     }
 }
