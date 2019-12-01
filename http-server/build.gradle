@@ -7,7 +7,7 @@ mainClassName = 'io.github.sammers21.tacm.server.Main'
 
 dependencies {
     compile project(":core")
-    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
 }
 
 jar {

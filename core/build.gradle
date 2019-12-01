@@ -4,7 +4,8 @@ plugins {
 }
 
 dependencies {
-    compile 'org.javacord:javacord:3.0.4'
+    // discord
+    compile "org.javacord:javacord:${javacordVersion}"
 
     //vertx
     compile group: 'io.vertx', name: 'vertx-core', version: vertxVersion
@@ -20,10 +21,10 @@ dependencies {
     compile group: 'io.dropwizard.metrics', name: 'metrics-jvm', version: dropwizardVersion
 
     // pg client
-    compile 'io.reactiverse:reactive-pg-client:0.11.4'
+    compile "io.reactiverse:reactive-pg-client:${reactivePgVersion}"
 
     // cli
-    compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
+    compile group: 'commons-cli', name: 'commons-cli', version: apacheCommonsCliVersion
 
     compile 'org.javatuples:javatuples:1.2'
 }
