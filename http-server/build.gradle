@@ -1,13 +1,20 @@
 plugins {
-    id 'java'
     id 'application'
+    id 'org.jetbrains.kotlin.jvm' version "${kotlinVersion}"
 }
 
-mainClassName = 'io.github.sammers21.tacm.server.Main'
+mainClassName = 'io.github.sammers21.tacm.server.MainKt'
 
 dependencies {
     compile project(":core")
     compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+}
+
+compileKotlin {
+    kotlinOptions {
+        jvmTarget = "11"
+    }
 }
 
 jar {
