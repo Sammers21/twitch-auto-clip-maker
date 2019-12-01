@@ -29,7 +29,7 @@ public class Streams {
     private final Set<Channel> channelsToWatch;
     private final Integer updateEachMillis;
     private final MetricRegistry metricRegistry;
-
+    
     public Streams(Vertx vertx,
                    DiscordApi discordBot,
                    DB DB,
@@ -39,7 +39,7 @@ public class Streams {
                    Set<Channel> channelsToWatch,
                    Integer updateEachMillis,
                    MetricRegistry metricRegistry) {
-
+        
         this.vertx = vertx;
         this.discordBot = discordBot;
         this.DB = DB;
@@ -50,12 +50,18 @@ public class Streams {
         this.updateEachMillis = updateEachMillis;
         this.metricRegistry = metricRegistry;
     }
-
+    
     public void enableStreamsInfo() {
         fillStreamersInfo().blockingAwait();
-        vertx.setPeriodic(updateEachMillis, event -> fillStreamersInfo().subscribe());
+        vertx.setPeriodic(updateEachMillis, event -> fillStreamersInfo()
+            .subscribe(
+                () -> {
+                },
+                error -> log.error("fill stremers info fail", error)
+            )
+        );
     }
-
+    
     private Completable fillStreamersInfo() {
         final HttpRequest<Buffer> infoRequest = request();
         return infoRequest.rxSend().map(bufferHttpResponse -> {
@@ -72,22 +78,22 @@ public class Streams {
             log.info("Live:{}, total:{}", streamersAndInfo.size(), channelsToWatch.size());
         }).ignoreElement();
     }
-
+    
     private HttpRequest<Buffer> request() {
         final HttpRequest<Buffer> infoRequest = webClient.getAbs("https://api.twitch.tv/helix/streams")
-                .putHeader("Client-ID", clientId)
-                .addQueryParam("first", String.valueOf(100))
-                .addQueryParam("token", bearerToken);
+            .putHeader("Client-ID", clientId)
+            .addQueryParam("first", String.valueOf(100))
+            .addQueryParam("token", bearerToken);
         channelsToWatch.forEach(chan -> {
             infoRequest.addQueryParam("user_login", chan.getName());
         });
         return infoRequest;
     }
-
+    
     public synchronized Map<String, JsonObject> streamersAndInfo() {
         return streamersAndInfo;
     }
-
+    
     public Single<String> createClipOnChannel(String channelName) {
         if (isOffline(channelName)) {
             return Single.error(new IllegalStateException("Streamer is offline:" + channelName));
@@ -100,7 +106,7 @@ public class Streams {
         HttpRequest<Buffer> clipReq = webClient.postAbs("https://api.twitch.tv/helix/clips");
         clipReq.putHeader("Authorization", String.format("Bearer %s", bearerToken));
         clipReq.addQueryParam("broadcaster_id", userId);
-    
+        
         return clipReq.rxSend().flatMap(resp -> {
             JsonObject arg = resp.bodyAsJsonObject();
             String clipLimitHeader = resp.getHeader("ratelimit-helixclipscreation-remaining");
@@ -112,7 +118,7 @@ public class Streams {
                 return Single.just(arg.getJsonArray("data").getJsonObject(0).getString("id"));
             } else {
                 metricRegistry.meter(String.format("channel.%s.failToCreateClip", channelName)).mark();
-                return Single.error(new IllegalStateException(String.format("Responsed with non 200 code: %s .Body:\n%s ",resp.statusCode(), arg.encodePrettily())));
+                return Single.error(new IllegalStateException(String.format("Responsed with non 200 code: %s .Body:\n%s ", resp.statusCode(), arg.encodePrettily())));
             }
         }).doOnSuccess(ok -> {
             DB.insertClip(ok, channelName, userId, json.getString("title"))
@@ -130,7 +136,7 @@ public class Streams {
                 });
         });
     }
-
+    
     public synchronized int viewersOnStream(String channelName) {
         JsonObject stremerInfo = streamersAndInfo.get(channelName);
         if (stremerInfo == null) {
@@ -139,13 +145,13 @@ public class Streams {
             return stremerInfo.getInteger("viewer_count");
         }
     }
-
+    
     public synchronized boolean isOnline(String channelName) {
         return streamersAndInfo.get(channelName) != null;
     }
-
+    
     public synchronized boolean isOffline(String channelName) {
         return !isOnline(channelName);
     }
-
+    
 }

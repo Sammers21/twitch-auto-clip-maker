@@ -43,8 +43,6 @@ public class Main {
     private static String CLIENT_SECRET;
     private static AtomicReference<String> BEARER_TOKEN = new AtomicReference<>(null);
     private static Integer CARBON_PORT;
-    private static int HTTP_PORT;
-    private static String TOKEN;
     private static Set<Channel> CHANNELS_TO_WATCH;
     private static final Map<String, AtomicInteger> viewersByChan = new ConcurrentHashMap<>();
     private static final Map<String, LastMessagesStorage> storageByChan = new ConcurrentHashMap<>();
@@ -66,12 +64,10 @@ public class Main {
         JsonObject cfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("cfg")))));
         JsonObject dbCfg = new JsonObject(new String(Files.readAllBytes(Paths.get(cmd.getOptionValue("db")))));
 
-        TOKEN = cfg.getString("token");
         CARBON_HOST = cfg.getString("carbon_host");
         CARBON_PORT = cfg.getInteger("carbon_port");
         CLIENT_ID = cfg.getString("client_id");
         CLIENT_SECRET = cfg.getString("client_secret");
-        HTTP_PORT = cfg.getInteger("http_port");
         JsonArray streamers = cfg.getJsonArray("streamers");
         CHANNELS_TO_WATCH = streamers.stream()
                 .map(o -> (JsonObject) o)
@@ -105,7 +101,6 @@ public class Main {
 
         initStoragesAndViewersCounter(CHANNELS_TO_WATCH);
 
-        log.info("Token={}", TOKEN);
         log.info("VERSION={}", VERSION);
         log.info("CARBON_HOST={}", CARBON_HOST);
         log.info("CARBON_PORT={}", CARBON_PORT);
@@ -114,7 +109,7 @@ public class Main {
         log.info("BEARER_TOKEN={}", BEARER_TOKEN);
         carbonReporting(metricRegistry, "twitch.chat", CARBON_HOST, CARBON_PORT);
 
-        TwitchChatClient twitchChatClient = new TwitchChatClient(TOKEN, "sammers21");
+        TwitchChatClient twitchChatClient = new TwitchChatClient(BEARER_TOKEN.get(), "clip_maker_bot");
         twitchChatClient.start();
         CHANNELS_TO_WATCH.stream().map(Channel::getName).forEach(twitchChatClient::joinChannel);
         reportMetrics(CHANNELS_TO_WATCH, metricRegistry, twitchChatClient);
