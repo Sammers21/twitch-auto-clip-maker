@@ -5,12 +5,14 @@ DROP TABLE IF EXISTS release;
 DROP TABLE IF EXISTS youtube_channel;
 DROP TABLE IF EXISTS kv;
 
+-- Таблица с токенами для бота
 CREATE TABLE bot_token
 (
     token VARCHAR(500) PRIMARY KEY,
     time  timestamp without time zone default now()
 );
 
+-- таблица клипов
 CREATE TABLE clip
 (
     clip_id        VARCHAR(500) PRIMARY KEY,
@@ -54,6 +56,14 @@ CREATE TABLE kv
     PRIMARY KEY (id, key)
 );
 
+-- Таблица пользователей
 CREATE TABLE service_users(
+    id SERIAL PRIMARY KEY,
+    twitch_nick_name VARCHAR(255)
+);
 
-)
+-- Токены пользователей
+CREATE TABLE user_token(
+    token VARCHAR(255) PRIMARY KEY ,
+    relates_to_user SERIAL REFERENCES service_users(id)
+);
