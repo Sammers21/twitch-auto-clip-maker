@@ -1,14 +1,13 @@
 package io.github.sammers21.tacm.server
 
+import io.reactivex.Single
 import io.vertx.core.http.HttpHeaders
 import io.vertx.reactivex.core.Vertx
-import io.vertx.reactivex.core.buffer.Buffer
-import io.vertx.reactivex.ext.web.Cookie
+import io.vertx.reactivex.core.http.Cookie
 import io.vertx.reactivex.ext.web.Router
 import io.vertx.reactivex.ext.web.RoutingContext
 import io.vertx.reactivex.ext.web.client.HttpResponse
 import io.vertx.reactivex.ext.web.client.WebClient
-import io.vertx.reactivex.ext.web.handler.CookieHandler
 import io.vertx.reactivex.ext.web.handler.StaticHandler
 import org.slf4j.LoggerFactory
 import java.io.InputStreamReader
@@ -28,9 +27,7 @@ class Server(private val vertx: Vertx, private val port: Int) {
         const val REGISTRED_REDIRECT_URL = "http://clip-maker.com/redirect-from-twitch"
         const val TWITCH_CLIENT_ID = "rld376iuzgb5mzpfos9kvh6zjdpih1"
         const val TWITCH_CLIENT_SECRET_CODE = "j5ovf00t6x92wlxg6abvck9dsg1qcs"
-        const val TWITCH_ACCESS_TOKEN_COOKIE = "access_token"
-        const val TWITCH_REFRESH_TOKEN_COOKIE = "refresh_token"
-        const val TWITCH_SCOPE_COOKIE = "twitch_scope"
+        const val CLIP_MAKER_TOKEN = "clip_maker_token"
     }
 
     init {
@@ -40,21 +37,19 @@ class Server(private val vertx: Vertx, private val port: Int) {
 
     fun start() {
         val router = Router.router(vertx)
-        router.route().handler(CookieHandler.create())
+        router.route("/clip-maker-bot-redirect").handler { ctx: RoutingContext -> ctx.response().end("OK") }
         router.get("/").handler { ctx: RoutingContext ->
-            if (ctx.getCookie(TWITCH_ACCESS_TOKEN_COOKIE) == null || ctx.getCookie(TWITCH_REFRESH_TOKEN_COOKIE) == null || ctx.getCookie(TWITCH_SCOPE_COOKIE) == null) {
+            if (ctx.getCookie(CLIP_MAKER_TOKEN) == null) {
                 ctx.response().setStatusCode(303).putHeader(HttpHeaders.LOCATION, "/login").end()
             } else {
                 ctx.response().end(INDEX_HTML_PAGE)
             }
         }
-        router.route("/clip-maker-bot-redirect").handler { ctx: RoutingContext -> ctx.response().end("OK") }
         router.get("/redirect-from-twitch").handler { ctx: RoutingContext ->
             val request = ctx.request()
             val params = request.params().entries().stream().map { e: Map.Entry<String?, String?> -> String.format("%s: %s", e.key, e.value) }.collect(Collectors.joining("; ", "[", "]"))
-            log.info("PATH:{}, PARAMS:{}", request.path(), params)
+            log.info("PATH:${request.path()}, PARAMS:${params}")
             val code = request.getParam("code")
-            val scope = request.getParam("scope")
             webClient.postAbs("https://id.twitch.tv/oauth2/token")
                     .addQueryParam("client_id", TWITCH_CLIENT_ID)
                     .addQueryParam("client_secret", TWITCH_CLIENT_SECRET_CODE)
@@ -62,25 +57,23 @@ class Server(private val vertx: Vertx, private val port: Int) {
                     .addQueryParam("grant_type", "authorization_code")
                     .addQueryParam("redirect_uri", REGISTRED_REDIRECT_URL)
                     .rxSend()
-                    .subscribe({ resp: HttpResponse<Buffer?> ->
-                        val entries = resp.bodyAsJsonObject()
-                        if (resp.statusCode() == 200) {
-                            val expiresIsSeconds = entries.getInteger("expires_in")
-                            ctx
-                                    .addCookie(Cookie.cookie(TWITCH_ACCESS_TOKEN_COOKIE, entries.getString("access_token")).setPath("/").setMaxAge(expiresIsSeconds.toLong()))
-                                    .addCookie(Cookie.cookie(TWITCH_SCOPE_COOKIE, scope.replace(" ", "_")).setPath("/").setMaxAge(expiresIsSeconds.toLong()))
-                                    .addCookie(Cookie.cookie(TWITCH_REFRESH_TOKEN_COOKIE, entries.getString("refresh_token")).setPath("/").setMaxAge(expiresIsSeconds.toLong()))
-                                    .response()
-                                    .setStatusCode(303)
-                                    .putHeader(HttpHeaders.LOCATION, "/")
-                                    .end()
-                        } else {
-                            log.error("Failed obtain token operation. STATUS:{}, RESPONSE:{}", resp.statusCode(), entries.encodePrettily())
-                        }
-                    }) { error: Throwable? -> log.error("Obtain token error", error) }
+                    .okResponse()
+                    .map { it.bodyAsJsonObject().mapTo(TwitchToken::class.java) }
+                    .subscribe({ resp ->
+                        val expiresIsSeconds = resp.expires_in
+                        ctx
+                                .addCookie(Cookie.cookie(CLIP_MAKER_TOKEN, resp.access_token).setPath("/").setMaxAge(expiresIsSeconds.toLong()))
+                                .response()
+                                .setStatusCode(303)
+                                .putHeader(HttpHeaders.LOCATION, "/")
+                                .end()
+                    }, { error: Throwable? ->
+                        log.error("Obtain token error", error)
+                        ctx.response().setStatusCode(400).end("ERROR")
+                    })
         }
         router.get("/login").handler { ctx: RoutingContext ->
-            val cookie = ctx.getCookie(TWITCH_ACCESS_TOKEN_COOKIE)
+            val cookie = ctx.getCookie(CLIP_MAKER_TOKEN)
             if (cookie == null) {
                 ctx.response().end(INDEX_HTML_PAGE)
             } else {
@@ -91,7 +84,7 @@ class Server(private val vertx: Vertx, private val port: Int) {
         vertx.createHttpServer()
                 .requestHandler(router)
                 .listen(port)
-        log.info("Started on port:{}", port)
+        log.info("Started on port:${port}")
     }
 
     private fun readIndexHtml(): String {
@@ -110,5 +103,23 @@ class Server(private val vertx: Vertx, private val port: Int) {
         val elapsed = stop - start
         log.info("Index html read time: {}ns", TimeUnit.NANOSECONDS.toMillis(elapsed))
         return out.toString()
+    }
+
+    private fun <T> Single<HttpResponse<T>>.okResponse(): Single<HttpResponse<T>> {
+        val stack = IllegalStateException("Stack trace from here")
+        return this.flatMap {
+            when (it.statusCode()) {
+                200 -> this
+                else -> Single.error(IllegalStateException("received non 200 response. HTTP status code: ${it.statusCode()}", stack))
+            }
+        }.flatMap {
+            val json = it.bodyAsJsonObject()
+            val st = json.getInteger("status")
+            when {
+                st == null -> this
+                (st / 100) == 2 -> this
+                else -> Single.error(IllegalStateException("received non 200 response in json body response($st): ${json.encodePrettily()}", stack))
+            }
+        }
     }
 }
