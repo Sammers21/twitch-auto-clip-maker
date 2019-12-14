@@ -25,8 +25,8 @@ class Server(private val vertx: Vertx, private val port: Int) {
     companion object {
         private val log = LoggerFactory.getLogger(Server::class.java)
         const val REGISTRED_REDIRECT_URL = "http://clip-maker.com/redirect-from-twitch"
-        const val TWITCH_CLIENT_ID = "rld376iuzgb5mzpfos9kvh6zjdpih1"
-        const val TWITCH_CLIENT_SECRET_CODE = "j5ovf00t6x92wlxg6abvck9dsg1qcs"
+        const val TWITCH_CLIENT_ID = "qrwctu82red26ek1d320lpr4uqbz9e"
+        const val TWITCH_CLIENT_SECRET_CODE = "3fcpi81m8lf7f1yob7lehvzh0oan24"
         const val CLIP_MAKER_TOKEN = "clip_maker_token"
     }
 
