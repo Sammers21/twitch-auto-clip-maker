@@ -12,14 +12,14 @@ RUN gradle compileJava --info
 COPY . ./
 RUN cd clip-producer \
     && gradle jar --info \
-    && mkdir $APP_DIR \
-    && cp build/libs/clip-producer.jar $APP_DIR
+    && mkdir /app \
+    && cp build/libs/clip-producer.jar /app
 
-COPY deployment/cfg.json $APP_DIR/
-COPY deployment/db.json $APP_DIR/
+COPY deployment/cfg.json /app/
+COPY deployment/db.json /app/
 
 FROM azul/zulu-openjdk-alpine:11
 COPY --from=build /app /app
 EXPOSE 5005
 ENTRYPOINT java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 \
-                -jar /app/clip-producer.jar -cfg $APP_DIR/cfg.json -db $APP_DIR/db.json
+                -jar /app/clip-producer.jar -cfg /app/cfg.json -db /app/db.json
