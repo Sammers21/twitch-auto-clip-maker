@@ -2,6 +2,7 @@ package io.github.sammers21.tacm.server
 
 import io.reactivex.Single
 import io.vertx.core.http.HttpHeaders
+import io.vertx.ext.web.client.WebClientOptions
 import io.vertx.reactivex.core.Vertx
 import io.vertx.reactivex.core.http.Cookie
 import io.vertx.reactivex.ext.web.Router
@@ -26,13 +27,13 @@ class Server(private val vertx: Vertx, private val port: Int) {
         private val log = LoggerFactory.getLogger(Server::class.java)
         const val REGISTRED_REDIRECT_URL = "http://clip-maker.com/redirect-from-twitch"
         const val TWITCH_CLIENT_ID = "qrwctu82red26ek1d320lpr4uqbz9e"
-        const val TWITCH_CLIENT_SECRET_CODE = "3fcpi81m8lf7f1yob7lehvzh0oan24"
+        const val TWITCH_CLIENT_SECRET_CODE = "vs4zoe717fzeyplhiuqz4peyw5ak37"
         const val CLIP_MAKER_TOKEN = "clip_maker_token"
     }
 
     init {
         INDEX_HTML_PAGE = readIndexHtml()
-        webClient = WebClient.create(vertx)
+        webClient = WebClient.create(vertx, WebClientOptions().setLogActivity(true))
     }
 
     fun start() {
@@ -57,9 +58,12 @@ class Server(private val vertx: Vertx, private val port: Int) {
                     .addQueryParam("grant_type", "authorization_code")
                     .addQueryParam("redirect_uri", REGISTRED_REDIRECT_URL)
                     .rxSend()
-                    .okResponse()
-                    .map { it.bodyAsJsonObject().mapTo(TwitchToken::class.java) }
+//                    .okResponse()
+                    .map {
+                        it.bodyAsJsonObject().mapTo(TwitchToken::class.java)
+                    }
                     .subscribe({ resp ->
+                        log.info("OK: {}", resp.access_token)
                         val expiresIsSeconds = resp.expires_in
                         ctx
                                 .addCookie(Cookie.cookie(CLIP_MAKER_TOKEN, resp.access_token).setPath("/").setMaxAge(expiresIsSeconds.toLong()))

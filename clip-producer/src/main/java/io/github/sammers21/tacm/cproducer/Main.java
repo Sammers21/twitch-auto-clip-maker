@@ -70,17 +70,17 @@ public class Main {
         CLIENT_SECRET = cfg.getString("client_secret");
         JsonArray streamers = cfg.getJsonArray("streamers");
         CHANNELS_TO_WATCH = streamers.stream()
-                .map(o -> (JsonObject) o)
-                .map(entries -> entries.mapTo(Channel.class))
-                // set default engine
-                .map(channel -> {
-                    String currentEngine = channel.getEngine();
-                    if (currentEngine == null) {
-                        channel.setEngine(ShortIntervalDecisionEngine.class.getSimpleName());
-                    }
-                    return channel;
-                })
-                .collect(Collectors.toSet());
+            .map(o -> (JsonObject) o)
+            .map(entries -> entries.mapTo(Channel.class))
+            // set default engine
+            .map(channel -> {
+                String currentEngine = channel.getEngine();
+                if (currentEngine == null) {
+                    channel.setEngine(ShortIntervalDecisionEngine.class.getSimpleName());
+                }
+                return channel;
+            })
+            .collect(Collectors.toSet());
         if (CHANNELS_TO_WATCH.size() == 0) {
             throw new IllegalStateException("No channels to watch");
         }
