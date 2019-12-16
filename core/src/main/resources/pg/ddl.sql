@@ -62,6 +62,8 @@ CREATE TABLE service_users
     id               SERIAL PRIMARY KEY,
     twitch_nick_name VARCHAR(255) UNIQUE NOT NULL,
     twitch_token     VARCHAR(255) UNIQUE NOT NULL
+-- add refresh token here
+-- add youtube here
 );
 
 -- Токены пользователей
