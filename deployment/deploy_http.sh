@@ -18,6 +18,6 @@ set -x
 docker pull $IMAGE_NAME
 docker stop $CONTAINER_NAME
 docker rm $CONTAINER_NAME
-docker run -p80:80  -p5005:5005 --name=$CONTAINER_NAME --restart=always -d $IMAGE_NAME
+docker run -p80:8080  -p5005:5005 --name=$CONTAINER_NAME --restart=always -d $IMAGE_NAME
 docker logs -f $CONTAINER_NAME
 ENDSSH

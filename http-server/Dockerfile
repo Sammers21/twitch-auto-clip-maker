@@ -14,8 +14,12 @@ RUN cd http-server \
     && mkdir /app \
     && cp build/libs/http-server.jar /app
 
+COPY deployment/cfg.json /app/
+COPY deployment/db.json /app/
+
+
 FROM azul/zulu-openjdk-alpine:11
 COPY --from=build /app /app
-EXPOSE 80 5005
+EXPOSE 8080 5005
 ENTRYPOINT java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 \
-                -jar /app/http-server.jar 80
+                -jar /app/http-server.jar -cfg /app/cfg.json -db /app/db.json

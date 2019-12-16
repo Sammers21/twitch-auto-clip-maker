@@ -1,5 +1,6 @@
 package io.github.sammers21.tacm.server
 
+import com.codahale.metrics.MetricRegistry
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.github.sammers21.twac.core.Utils
 import io.github.sammers21.twac.core.db.DB
@@ -8,7 +9,6 @@ import io.vertx.core.json.JsonObject
 import io.vertx.core.json.jackson.DatabindCodec
 import io.vertx.reactivex.core.RxHelper
 import io.vertx.reactivex.core.Vertx
-import org.apache.commons.cli.CommandLineParser
 import org.apache.commons.cli.DefaultParser
 import org.apache.commons.cli.Options
 import java.nio.file.Files
@@ -17,16 +17,17 @@ import java.nio.file.Paths
 fun main(args: Array<String>) {
     val vertx = Vertx.vertx()
     initStatic(vertx)
-    var port = 8080
-    if (args.size == 1) {
-        port = args[0].toInt()
-    }
+    val port = 8080
     val options = Options()
     options.addOption("db", true, "db json config file")
-    val parser: CommandLineParser = DefaultParser()
+    options.addOption("cfg", true, "json config file");
+    val parser = DefaultParser()
     val cmd = parser.parse(options, args)
     val dbCfg = JsonObject(String(Files.readAllBytes(Paths.get(cmd.getOptionValue("db")))))
+    val cfg = JsonObject(String(Files.readAllBytes(Paths.get(cmd.getOptionValue("cfg")))))
     val server = Server(vertx, port, DB(dbCfg, "NO_VERSION"))
+    val metricRegistry = MetricRegistry()
+    Utils.carbonReporting(metricRegistry, "http-server", cfg.getString("carbon_host"), cfg.getInteger("carbon_port"))
     server.start()
 }
 
