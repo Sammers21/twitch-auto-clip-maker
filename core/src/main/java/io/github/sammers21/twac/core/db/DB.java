@@ -196,10 +196,9 @@ public class DB {
 
     public Single<String> authWithTwitchToken(String twitchToken, String twitchNick) {
         return pgClient.rxBegin().flatMap(tx -> {
-            return tx.rxPreparedQuery(
-                "insert into service_users(twitch_nick_name, twitch_token)\n" +
+            return tx.rxPreparedQuery("insert into service_users(twitch_nick_name, twitch_token)\n" +
                     "values ($1, $2)\n" +
-                    "on conflict do update set twitch_token = $2" +
+                    "on conflict(twitch_nick_name) do update set twitch_token = $2\n" +
                     "returning id",
                 Tuple.of(twitchToken, twitchNick)
             ).map(res -> res.iterator().next().getInteger("id"))
