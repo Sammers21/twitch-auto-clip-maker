@@ -200,7 +200,7 @@ public class DB {
                     "values ($1, $2)\n" +
                     "on conflict(twitch_nick_name) do update set twitch_token = $2\n" +
                     "returning id",
-                Tuple.of(twitchToken, twitchNick)
+                Tuple.of(twitchNick, twitchToken)
             ).map(res -> res.iterator().next().getInteger("id"))
                 .flatMap(id ->
                     tx.rxPreparedQuery(
