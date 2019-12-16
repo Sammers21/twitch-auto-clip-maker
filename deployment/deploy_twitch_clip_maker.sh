@@ -4,7 +4,7 @@ set -e
 CONTAINER_NAME="clip-producer"
 REGISTRY="repo.treescale.com/sammers"
 IMAGE_NAME="$REGISTRY/$CONTAINER_NAME"
-SSH_HOST="159.89.11.41"
+SSH_HOST="app.clip-maker.com"
 
 cd ~/twitch-auto-clip-maker
 docker build -f clip-producer/Dockerfile . -t $IMAGE_NAME
