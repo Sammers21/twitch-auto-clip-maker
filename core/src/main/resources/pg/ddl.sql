@@ -57,13 +57,16 @@ CREATE TABLE kv
 );
 
 -- Таблица пользователей
-CREATE TABLE service_users(
-    id SERIAL PRIMARY KEY,
-    twitch_nick_name VARCHAR(255)
+CREATE TABLE service_users
+(
+    id               SERIAL PRIMARY KEY,
+    twitch_nick_name VARCHAR(255) UNIQUE NOT NULL,
+    twitch_token     VARCHAR(255) UNIQUE NOT NULL
 );
 
 -- Токены пользователей
-CREATE TABLE user_token(
-    token VARCHAR(255) PRIMARY KEY ,
-    relates_to_user SERIAL REFERENCES service_users(id)
+CREATE TABLE user_token
+(
+    token           VARCHAR(255) PRIMARY KEY,
+    relates_to_user SERIAL REFERENCES service_users (id)
 );

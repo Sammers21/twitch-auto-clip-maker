@@ -1,5 +1,6 @@
 package io.github.sammers21.tacm.server
 
+import io.github.sammers21.twac.core.db.DB
 import io.reactivex.Single
 import io.vertx.core.http.HttpHeaders
 import io.vertx.ext.web.client.WebClientOptions
@@ -18,7 +19,10 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
 
-class Server(private val vertx: Vertx, private val port: Int) {
+class Server(private val vertx: Vertx,
+             private val port: Int,
+             private val db: DB
+) {
 
     private val webClient: WebClient
     private val INDEX_HTML_PAGE: String
@@ -58,10 +62,7 @@ class Server(private val vertx: Vertx, private val port: Int) {
                     .addQueryParam("grant_type", "authorization_code")
                     .addQueryParam("redirect_uri", REGISTRED_REDIRECT_URL)
                     .rxSend()
-//                    .okResponse()
-                    .map {
-                        it.bodyAsJsonObject().mapTo(TwitchToken::class.java)
-                    }
+                    .map { it.bodyAsJsonObject().mapTo(TwitchToken::class.java) }
                     .subscribe({ resp ->
                         log.info("OK: {}", resp.access_token)
                         val expiresIsSeconds = resp.expires_in
