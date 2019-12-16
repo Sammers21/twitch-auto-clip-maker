@@ -21,5 +21,6 @@ COPY deployment/db.json /app/
 FROM azul/zulu-openjdk-alpine:11
 COPY --from=build /app /app
 EXPOSE 8080 5005
-ENTRYPOINT java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 \
+ENTRYPOINT java -Xmx64m \
+                -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 \
                 -jar /app/http-server.jar -cfg /app/cfg.json -db /app/db.json

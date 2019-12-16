@@ -21,5 +21,6 @@ COPY deployment/db.json /app/
 FROM azul/zulu-openjdk-alpine:11
 COPY --from=build /app /app
 EXPOSE 5005
-ENTRYPOINT java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 \
+ENTRYPOINT java -Xmx64m \
+                -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 \
                 -jar /app/clip-producer.jar -cfg /app/cfg.json -db /app/db.json
