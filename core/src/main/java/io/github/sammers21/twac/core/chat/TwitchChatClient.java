@@ -81,6 +81,10 @@ public class TwitchChatClient {
         tcpTextClient.input(String.format("JOIN #%s", chan));
     }
 
+    public void sendMsgToChan(String chan, String text) {
+        tcpTextClient.input(String.format("PRIVMSG #%s :%s", chan, text));
+    }
+
     public void setMetricRegistry(MetricRegistry metricRegistry) {
         this.metricRegistry = metricRegistry;
         tcpTextClient.setMetricRegistry(metricRegistry);

@@ -4,6 +4,7 @@ import io.github.sammers21.tacm.cproducer.LastMessagesStorage;
 import io.github.sammers21.twac.core.Channel;
 import io.github.sammers21.twac.core.Streams;
 import io.github.sammers21.twac.core.chat.ChatMessage;
+import io.github.sammers21.twac.core.chat.TwitchChatClient;
 import io.vertx.core.Vertx;
 
 import java.util.Comparator;
@@ -17,8 +18,8 @@ import java.util.stream.LongStream;
 public class ShortIntervalDecisionEngine extends DecisionEngine {
 
 
-    public ShortIntervalDecisionEngine(Vertx vertx, Channel chan, LastMessagesStorage lms, Streams streams) {
-        super(vertx, chan, lms, streams);
+    public ShortIntervalDecisionEngine(Vertx vertx, Channel chan, LastMessagesStorage lms, Streams streams, TwitchChatClient chatClient) {
+        super(vertx, chan, lms, streams, chatClient);
     }
 
     @Override
