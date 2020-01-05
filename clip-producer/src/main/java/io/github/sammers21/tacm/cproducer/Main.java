@@ -99,7 +99,8 @@ public class Main {
         log.info("Server list:{}, inv link:{}", list, botInvite);
         streams.enableStreamsInfo();
 
-        initStoragesAndViewersCounter(CHANNELS_TO_WATCH);
+        TwitchChatClient twitchChatClient = new TwitchChatClient(BEARER_TOKEN.get(), "clip_maker_bot");
+        initStoragesAndViewersCounter(CHANNELS_TO_WATCH, twitchChatClient);
 
         log.info("VERSION={}", VERSION);
         log.info("CARBON_HOST={}", CARBON_HOST);
@@ -108,25 +109,23 @@ public class Main {
         log.info("CLIENT_SECRET={}", CLIENT_SECRET);
         log.info("BEARER_TOKEN={}", BEARER_TOKEN);
         carbonReporting(metricRegistry, "twitch.chat", CARBON_HOST, CARBON_PORT);
-
-        TwitchChatClient twitchChatClient = new TwitchChatClient(BEARER_TOKEN.get(), "clip_maker_bot");
         twitchChatClient.start();
         CHANNELS_TO_WATCH.stream().map(Channel::getName).forEach(twitchChatClient::joinChannel);
         reportMetrics(CHANNELS_TO_WATCH, metricRegistry, twitchChatClient);
         twitchChatClient.setMetricRegistry(metricRegistry);
     }
 
-    private static void initStoragesAndViewersCounter(Set<Channel> channelToWatch) {
+    private static void initStoragesAndViewersCounter(Set<Channel> channelToWatch, TwitchChatClient twitchChatClient) {
         channelToWatch.forEach(chan -> {
             viewersByChan.put(chan.getName(), new AtomicInteger(0));
             LastMessagesStorage storage = new LastMessagesStorage(2 * 60_000);
             switch (chan.getEngine()) {
                 case "LastMsgFirstDecisionEngine":
-                    new LastMsgFirstDecisionEngine(vertx.getDelegate(), chan, storage, streams).startDecisionEngine();
+                    new LastMsgFirstDecisionEngine(vertx.getDelegate(), chan, storage, streams, twitchChatClient).startDecisionEngine();
                     break;
                 case "ShortIntervalDecisionEngine":
                 default:
-                    new ShortIntervalDecisionEngine(vertx.getDelegate(), chan, storage, streams).startDecisionEngine();
+                    new ShortIntervalDecisionEngine(vertx.getDelegate(), chan, storage, streams, twitchChatClient).startDecisionEngine();
                     break;
             }
             storageByChan.put(chan.getName(), storage);
