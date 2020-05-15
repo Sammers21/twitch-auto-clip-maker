@@ -1,5 +1,5 @@
 {
-  "carbon_host": "159.89.11.41",
+  "carbon_host": "clip-maker.com",
   "carbon_port": 2003,
   "client_id": "jtg6oerf403c00rqnhb4qkurlxc2q5",
   "client_secret": "1krjjv249km9xmgcoluyk4gyyyvtnw",
@@ -56,6 +56,7 @@
     { "name": "dreamhackdota2_ru3" },
     { "name": "yar_ki" },
     { "name": "dreamleague" },
-    { "name": "ftmawf" }
+    { "name": "ftmawf" },
+    { "name": "admiralbulldog" }
   ]
 }

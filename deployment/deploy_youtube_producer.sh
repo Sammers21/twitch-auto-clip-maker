@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -x
 set -e
-SSH_HOST="159.89.11.41"
+SSH_HOST="clip-maker.com"
 cd ~
 cd twitch-auto-clip-maker
 git pull

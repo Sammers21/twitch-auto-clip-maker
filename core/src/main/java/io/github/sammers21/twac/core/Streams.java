@@ -86,6 +86,7 @@ public class Streams {
     private HttpRequest<Buffer> request() {
         final HttpRequest<Buffer> infoRequest = webClient.getAbs("https://api.twitch.tv/helix/streams")
             .putHeader("Client-ID", clientId)
+            .putHeader("Authorization", String.format("Bearer %s", bearerToken))
             .addQueryParam("first", String.valueOf(100))
             .addQueryParam("token", bearerToken);
         channelsToWatch.forEach(chan -> {

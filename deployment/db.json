@@ -1,5 +1,5 @@
 {
-  "host": "159.89.11.41",
+  "host": "clip-maker.com",
   "port": 5432,
   "db": "postgres",
   "user": "postgres",
