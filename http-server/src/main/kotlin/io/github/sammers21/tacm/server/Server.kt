@@ -63,16 +63,16 @@ class Server(private val vertx: Vertx,
                     .addQueryParam("redirect_uri", REGISTRED_REDIRECT_URL)
                     .rxSend()
                     .map { it.bodyAsJsonObject().mapTo(TwitchToken::class.java) }
-                    .flatMap { token ->
-                        webClient.getAbs("https://api.twitch.tv/helix/users")
-                                .putHeader("Authorization", "Bearer " + token.access_token)
-                                .rxSend()
-                                .map { resp -> Pair(token, resp.bodyAsJsonObject().getJsonArray("data").getJsonObject(0).getString("login")) }
-                    }.flatMap { db.authWithTwitchToken(it.first.access_token, it.second) }
+//                    .flatMap { token ->
+//                        webClient.getAbs("https://api.twitch.tv/helix/users")
+//                                .putHeader("Authorization", "Bearer " + token.access_token)
+//                                .rxSend()
+//                                .map { resp -> Pair(token, resp.bodyAsJsonObject().getJsonArray("data").getJsonObject(0).getString("login")) }
+//                    }.flatMap { db.authWithTwitchToken(it.first.access_token, it.second) }
                     .subscribe({ clipMakerToken ->
                         log.info("AUTH OK: {}", clipMakerToken)
                         ctx
-                                .addCookie(Cookie.cookie(CLIP_MAKER_TOKEN, clipMakerToken).setPath("/").setMaxAge(TimeUnit.DAYS.toSeconds(30)))
+                                .addCookie(Cookie.cookie(CLIP_MAKER_TOKEN, clipMakerToken.access_token).setPath("/").setMaxAge(TimeUnit.DAYS.toSeconds(30)))
                                 .response()
                                 .setStatusCode(303)
                                 .putHeader(HttpHeaders.LOCATION, "/")

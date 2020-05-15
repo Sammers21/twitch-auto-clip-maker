@@ -108,11 +108,13 @@ public class Streams {
             json = streamersAndInfo.get(channelName);
         }
         String userId = json.getString("user_id");
-        HttpRequest<Buffer> clipReq = webClient.postAbs("https://api.twitch.tv/helix/clips");
-        clipReq.putHeader("Authorization", String.format("Bearer %s", bearerToken));
-        clipReq.addQueryParam("broadcaster_id", userId);
 
-        return clipReq.rxSend().flatMap(resp -> {
+        return webClient.postAbs("https://api.twitch.tv/helix/clips")
+            .putHeader("Client-ID", clientId)
+            .putHeader("Authorization", String.format("Bearer %s", bearerToken))
+            .addQueryParam("broadcaster_id", userId)
+            .rxSend()
+            .flatMap(resp -> {
             JsonObject arg = resp.bodyAsJsonObject();
             String clipLimitHeader = resp.getHeader("ratelimit-helixclipscreation-remaining");
             if (clipLimitHeader != null) {
