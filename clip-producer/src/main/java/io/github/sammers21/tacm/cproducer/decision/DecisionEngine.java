@@ -42,8 +42,8 @@ public abstract class DecisionEngine {
                     if (streams.isOnline(channel.getName()) && makeDecision()) {
                         streams.createClipOnChannel(channel.getName())
                             .doAfterSuccess(s -> {
-                                chatClient.sendMsgToChan(channel.getName(),
-                                    String.format("Highlight has been created: https://clips.twitch.tv/%s .Bot creator: sammers21", s));
+//                                chatClient.sendMsgToChan(channel.getName(),
+//                                    String.format("Highlight has been created: https://clips.twitch.tv/%s .Bot creator: sammers21", s));
                             })
                             .subscribe(
                                 ok -> {
