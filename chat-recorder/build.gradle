@@ -10,7 +10,7 @@ mainClassName = 'io.github.sammers21.tacm.youtube.Main'
 dependencies {
 
     compile project(":core")
-    compile 'org.apache.commons:commons-lang3:3.10'
+    compile 'org.apache.commons:commons-lang3:3.11'
     // logging
     compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
 }
